@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="요카드(YOCARD)는 결제처와 금액에 맞춰 보유 카드와 멤버십 중 가장 유리한 혜택을 안내합니다.">
+  <title>요카드 | YOCARD — 오늘은, 요 카드.</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d1f2d'/%3E%3Crect x='13' y='17' width='38' height='30' rx='7' fill='%235be0b7'/%3E%3Cpath d='M22 33l6 6 14-16' fill='none' stroke='%230d1f2d' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="요카드 YOCARD 홈">
+      <span class="brand-mark" aria-hidden="true">✓</span>
+      <span>요카드 <small>YOCARD</small></span>
+    </a>
+    <div class="header-actions">
+      <span class="period" id="periodLabel"></span>
+      <button class="button button-quiet" id="openStatus" type="button">내 설정</button>
+    </div>
+  </header>
+
+  <main id="top" class="shell">
+    <section class="guide-section" aria-labelledby="guideTitle">
+      <div class="guide-heading">
+        <div>
+          <div class="section-kicker">내 카드 생활 가이드</div>
+          <h1 id="guideTitle">평소엔 어디서, 어떤 카드를 쓸까?</h1>
+          <p class="lead">금액을 입력하지 않아도 업종별로 기억해 둘 사용처와 카드 조건을 보여줍니다.</p>
+        </div>
+        <div class="guide-state" id="guideState"></div>
+      </div>
+      <div class="guide-grid" id="guideGrid"></div>
+      <p class="guide-footnote">항목을 누르면 카드와 통신사 멤버십의 금액 조건, 실적, 한도와 차선책까지 확인할 수 있습니다.</p>
+    </section>
+
+    <section class="decision-panel" aria-labelledby="decisionTitle">
+      <div class="section-kicker">정확히 계산하기</div>
+      <h2 id="decisionTitle">결제처가 정해졌다면</h2>
+      <p class="lead">구매처와 금액만 고르면 지금 받을 수 있는 혜택을 순서대로 계산합니다.</p>
+
+      <form id="recommendForm" class="recommend-form">
+        <div class="field field-merchant">
+          <label for="merchant">구매처</label>
+          <div class="select-wrap">
+            <select id="merchant" required></select>
+          </div>
+        </div>
+
+        <div class="field field-amount">
+          <label for="amount">결제 금액</label>
+          <div class="money-input">
+            <input id="amount" type="text" inputmode="numeric" autocomplete="off" value="12,000" aria-describedby="amountHelp">
+            <span>원</span>
+          </div>
+          <div class="quick-amounts" id="amountHelp" aria-label="빠른 금액 입력">
+            <button type="button" data-amount="5000">5천</button>
+            <button type="button" data-amount="10000">1만</button>
+            <button type="button" data-amount="30000">3만</button>
+            <button type="button" data-amount="50000">5만</button>
+          </div>
+        </div>
+
+        <fieldset class="field field-method">
+          <legend>결제 방식</legend>
+          <div class="segmented" id="paymentMethods">
+            <label><input type="radio" name="payment" value="card" checked><span>일반 카드</span></label>
+            <label><input type="radio" name="payment" value="kbpay"><span>KB Pay</span></label>
+            <label><input type="radio" name="payment" value="kakaopay"><span>카카오페이</span></label>
+            <label><input type="radio" name="payment" value="samsungmoney"><span>삼성월렛 머니</span></label>
+            <label><input type="radio" name="payment" value="autopay"><span>자동이체</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field field-channel">
+          <legend>결제 위치</legend>
+          <div class="segmented compact">
+            <label><input type="radio" name="channel" value="offline" checked><span>오프라인</span></label>
+            <label><input type="radio" name="channel" value="online"><span>온라인</span></label>
+          </div>
+        </fieldset>
+
+        <label class="conditional-option is-hidden" id="eventItemRow" hidden>
+          <input id="eventItem" type="checkbox">
+          <span><strong id="eventItemTitle">CU 행사상품이에요</strong><small id="eventItemHelp">간편식·Get커피 등 행사 대상 품목</small></span>
+        </label>
+
+        <label class="conditional-option membership-eligible-option is-hidden" id="membershipEligibleRow" hidden>
+          <input id="membershipEligible" type="checkbox">
+          <span><strong id="membershipEligibleTitle">T멤버십 대상 상품이에요</strong><small id="membershipEligibleHelp">브랜드별 지정 상품에만 혜택이 적용됩니다.</small></span>
+        </label>
+
+        <button class="button button-primary submit-button" type="submit">
+          <span>가장 좋은 카드 찾기</span><span aria-hidden="true">→</span>
+        </button>
+      </form>
+    </section>
+
+    <section class="result-panel" aria-live="polite" aria-labelledby="resultTitle">
+      <div class="result-heading">
+        <div>
+          <div class="section-kicker">추천 결과</div>
+          <h2 id="resultTitle">지금 가장 유리한 선택</h2>
+        </div>
+        <button class="icon-button" id="openDetails" type="button" aria-label="카드별 계산 상세 보기">?</button>
+      </div>
+      <div id="results"></div>
+    </section>
+
+    <section class="wallet-section" aria-labelledby="walletTitle">
+      <div class="wallet-heading">
+        <div>
+          <div class="section-kicker">내 지갑</div>
+          <h2 id="walletTitle">등록된 결제수단 9개</h2>
+        </div>
+        <span class="source-note">공식 상품 안내 기준</span>
+      </div>
+      <div class="wallet-grid" id="walletGrid"></div>
+    </section>
+  </main>
+
+  <dialog id="statusDialog" class="dialog">
+    <form method="dialog" class="dialog-card" id="statusForm">
+      <div class="dialog-head">
+        <div>
+          <div class="section-kicker">기본 설정 + 월초 갱신</div>
+          <h2>내 카드 설정</h2>
+          <p>평소 조건은 계속 유지되고, 전월 실적 구간만 월초에 확인하면 됩니다.</p>
+        </div>
+        <button class="close-button" value="cancel" aria-label="닫기" type="submit">×</button>
+      </div>
+      <section class="profile-settings" aria-labelledby="profileSettingsTitle">
+        <h3 id="profileSettingsTitle">평소 설정</h3>
+        <div class="profile-grid">
+          <label class="profile-field" for="carrier"><span>내 통신사</span><select id="carrier"><option value="unset">미설정</option><option value="skt">SKT</option><option value="kt">KT</option><option value="lgu">LG U+</option><option value="liivm">Liiv M</option><option value="mvno">기타 알뜰폰</option><option value="none">통신요금 없음</option></select></label>
+          <label class="profile-field" for="membershipGrade"><span>통신사 멤버십 등급</span><select id="membershipGrade"><option value="silver">SILVER</option><option value="gold" disabled>GOLD (미등록)</option><option value="vip" disabled>VIP (미등록)</option><option value="lite" disabled>LITE (미등록)</option><option value="none">사용 안 함</option></select></label>
+          <label class="profile-field" for="membershipMode"><span>T멤버십 이용 방식</span><select id="membershipMode"><option value="discount">할인형</option><option value="point">적립형</option></select><small>현재 SKT SILVER 상시 혜택이 추천에 등록되어 있습니다.</small></label>
+          <label class="profile-field" for="phoneAmount"><span>월 통신요금</span><select id="phoneAmount"><option value="unset">미설정</option><option value="under10000">1만원 미만</option><option value="10000">1만원 이상~5만원 미만</option><option value="50000">5만원 이상</option><option value="none">통신요금 없음</option></select></label>
+          <label class="profile-field" for="transitMode"><span>대중교통 결제</span><select id="transitMode"><option value="unset">미설정</option><option value="kpass">K-패스 사용</option><option value="card">보유 카드로 결제</option><option value="none">대중교통 이용 안 함</option></select></label>
+        </div>
+      </section>
+      <div class="status-section-head"><h3>카드별 설정</h3><span>실적은 금액 구간만 선택</span></div>
+      <div class="status-list" id="statusList"></div>
+      <div class="dialog-actions">
+        <button class="button button-danger" id="resetUsage" type="button">이번 달 기록 초기화</button>
+        <button class="button button-primary" id="saveStatus" value="default" type="submit">저장하고 다시 계산</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detailsDialog" class="dialog">
+    <div class="dialog-card detail-dialog-card">
+      <div class="dialog-head">
+        <div>
+          <div class="section-kicker">계산 근거</div>
+          <h2>카드별 판정 상세</h2>
+        </div>
+        <button class="close-button" id="closeDetails" aria-label="닫기" type="button">×</button>
+      </div>
+      <div id="detailsList" class="details-list"></div>
+    </div>
+  </dialog>
+
+  <dialog id="cardDialog" class="dialog card-detail-dialog">
+    <div class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <div class="section-kicker">등록된 혜택 원장</div>
+          <h2 id="cardDetailTitle">카드 혜택 정보</h2>
+          <p id="cardDetailMeta"></p>
+        </div>
+        <button class="close-button" id="closeCardDetail" aria-label="닫기" type="button">×</button>
+      </div>
+      <div id="cardDetailContent" class="card-detail-content"></div>
+    </div>
+  </dialog>
+
+  <dialog id="guideDialog" class="dialog card-detail-dialog">
+    <div class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <div class="section-kicker">생활 가이드 상세</div>
+          <h2 id="guideDetailTitle">업종별 추천</h2>
+          <p id="guideDetailMeta"></p>
+        </div>
+        <button class="close-button" id="closeGuideDetail" aria-label="닫기" type="button">×</button>
+      </div>
+      <div id="guideDetailContent" class="guide-detail-content"></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
