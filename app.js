@@ -9,12 +9,12 @@ const merchants = [
   ['parisbaguette', '파리바게뜨', '베이커리'], ['touslesjours', '뚜레쥬르', '베이커리'],
   ['cu', 'CU', '편의점'], ['gs25', 'GS25', '편의점'], ['seveneleven', '세븐일레븐', '편의점'], ['emart24', '이마트24', '편의점'],
   ['coupang', '쿠팡', '온라인쇼핑'], ['naverplus', '네이버플러스 스토어', '온라인쇼핑'], ['hmall', 'H몰', '온라인쇼핑'], ['lotteon', '롯데ON', '온라인쇼핑'], ['cjonstyle', 'CJ온스타일', '온라인쇼핑'], ['wconcept', 'W컨셉', '온라인쇼핑'], ['musinsa', '무신사', '온라인쇼핑'], ['29cm', '29CM', '온라인쇼핑'], ['gmarket', 'G마켓', '온라인쇼핑'], ['auction', '옥션', '온라인쇼핑'], ['11st', '11번가', '온라인쇼핑'],
-  ['googleplay', '구글플레이스토어', '디지털'], ['appstore', '앱스토어', '디지털'], ['netflix', '넷플릭스', '구독'], ['youtube', '유튜브 프리미엄', '구독'], ['naverwebtoon', '네이버웹툰', '구독'],
+  ['googleplay', '구글플레이스토어', '디지털'], ['appstore', '앱스토어', '디지털'], ['netflix', '넷플릭스', '구독'], ['youtube', '유튜브 프리미엄', '구독'], ['naverwebtoon', '네이버웹툰', '구독'], ['naverplusmembership', '네이버플러스 멤버십', '구독'], ['coupangwow', '쿠팡와우 멤버십', '구독'],
   ['baemin', '배달의민족', '배달'], ['yogiyo', '요기요', '배달'], ['coupangeats', '쿠팡이츠', '배달'],
   ['cgv', 'CGV', '영화'], ['megabox', '메가박스', '영화'], ['interpark', '인터파크 티켓', '문화'],
   ['oliveyoung', '올리브영', '뷰티'], ['daiso', '다이소', '생활'], ['hairsalon', '미용실', '뷰티'],
   ['skt', 'SKT 통신요금', '통신'], ['kt', 'KT 통신요금', '통신'], ['lgu', 'LG U+ 통신요금', '통신'], ['liivm', 'Liiv M 통신요금', '통신'], ['mvno', '기타 알뜰폰 통신요금', '통신'],
-  ['transit', '국내 버스·지하철', '교통'], ['rail', 'KTX·SRT·ITX', '교통'], ['taxi', '택시', '교통'], ['overseas-transit', '해외 대중교통', '해외'],
+  ['transit', '버스·지하철', '교통'], ['rail', 'KTX·SRT·ITX', '교통'], ['taxi', '택시', '교통'], ['overseas-transit', '해외 대중교통', '해외'],
   ['everland', '에버랜드', '놀이공원'], ['lotteworld', '롯데월드', '놀이공원'], ['seoulland', '서울랜드', '놀이공원'], ['caribbean', '캐리비안베이', '놀이공원'],
   ['outback', '아웃백', '외식'], ['vips', 'VIPS', '외식'], ['lotteria', '롯데리아', '외식'], ['burger', '패스트푸드', '외식'],
   ['domino', '도미노피자', '피자·치킨'], ['pizzahut', '피자헛', '피자·치킨'], ['papajohns', '파파존스피자', '피자·치킨'],
@@ -46,46 +46,52 @@ const cards = [
       b('nori-phone', ['skt','kt','lgu','liivm'], '통신 자동이체 2,500원', { flat:2500, minAmount:50000, minSpend:200000, monthlyCap:2500, monthlyCount:1, payment:'autopay', group:'nori' }),
       b('nori-cgv', ['cgv'], 'CGV 4,000원', { flat:4000, minAmount:10000, minSpend:200000, monthlyCap:8000, monthlyCount:2, group:'nori' }),
       b('nori-park', ['everland','lotteworld'], '놀이공원 15,000원', { flat:15000, minAmount:30000, minSpend:200000, monthlyCap:15000, monthlyCount:1, group:'nori' }),
-      b('nori-kb-off', ['*'], 'KB Pay 오프라인 2% 추가', { rate:.02, minSpend:300000, monthlyCap:3000, payment:'kbpay', channel:'offline', group:'nori', stack:true, domesticOnly:true }),
-      b('nori-kb-on', ['*'], 'KB Pay 온라인 2% 추가', { rate:.02, minSpend:300000, monthlyCap:2000, payment:'kbpay', channel:'online', group:'nori', stack:true, domesticOnly:true })
+      b('nori-kb-off', ['*'], 'KB Pay 오프라인 2% 추가', { rate:.02, minSpend:300000, monthlyCap:3000, payment:'kbpay', channel:'offline', group:'nori', stack:true, domesticOnly:true, detailTitle:'KB Pay · 2%', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','오프라인 월 한도 3,000원 (통합한도 적용)','온라인 월 한도 2,000원 (통합한도 적용)','국내 이용만 적용'] }),
+      b('nori-kb-on', ['*'], 'KB Pay 온라인 2% 추가', { rate:.02, minSpend:300000, monthlyCap:2000, payment:'kbpay', channel:'online', group:'nori', stack:true, domesticOnly:true, hideInDetail:true })
     ]
   },
   {
-    id: 'soltravel', issuer: '신한카드', name: 'SOL트래블 체크', kind: '여행형', source: '카드고릴라 2667 · 신한카드 공식 안내', groups:{}, benefits:[
-      b('sol-cu-event', ['cu'], 'CU 행사상품 5% 즉시할인', { rate:.05, txnCap:2000, requiresEvent:true }),
-      b('sol-store', ['seveneleven','cu','gs25','emart24'], '국내 4대 편의점 5%', { rate:.05, minSpend:300000, monthlyCap:3000, monthlyCount:3, dailyCount:1 }),
-      b('sol-transit', ['transit'], '국내 후불교통 1%', { rate:.01, minSpend:300000, monthlyCap:3000 }),
-      b('sol-overseas-transit', ['overseas-transit'], '해외 대중교통 1%', { rate:.01 })
+    id: 'soltravel', issuer: '신한카드', name: 'SOL트래블 체크', kind: '할인형', source: '카드고릴라 2667 · 신한카드 공식 안내', groups:{}, benefits:[
+      b('sol-cu-event', ['cu'], 'CU 간편식·즉석원두커피 5% 할인', { rate:.05, txnCap:2000, requiresEvent:true, channel:'offline', benefitType:'할인', detailTitle:'CU 간편식·즉석원두커피 · 5%', detailTags:['전월 실적 조건 없음','건당 이용 조건 없음','건당 한도 2,000원','월 한도 없음 (통합한도 미적용)'] }),
+      b('sol-store', ['seveneleven','cu','gs25','emart24'], '국내 4대 편의점 5%', { rate:.05, minSpend:300000, monthlyCap:3000, monthlyCount:3, dailyCount:1, benefitType:'할인' }),
+      b('sol-transit', ['transit'], '국내 대중교통 1%', { rate:.01, minSpend:300000, monthlyCap:3000, benefitType:'할인', displayMerchants:['시내버스','시외버스','지하철','공항버스','공항철도'], conditionNote:'후불교통 터치(RF) 거래만 적용 · 고속버스 제외' }),
+      b('sol-overseas-transit', ['overseas-transit'], '해외 대중교통 1%', { rate:.01, monthlyCap:3000, benefitType:'할인', conditionNote:'Mastercard 컨택리스 방식의 버스·지하철·트램 등만 적용 · 택시 제외' }),
+      b('sol-lounge', [], '더라운지 공항라운지 본인 무료 입장', { minSpend:300000, annualCount:2, benefitType:null, detailTitle:'더라운지 공항라운지 · 본인 무료 입장', detailTags:['전월 실적 300,000원 이상','반기별 1회 · 연 2회','더라운지 앱에서 이용권 발급 필요','회원 본인만 이용 가능'] })
     ]
   },
   {
     id: 'hana', issuer: '하나카드', name: '하나 나라사랑카드', kind: '캐시백형', source: '카드고릴라 2934 · 하나카드 상품설명서',
     groups:{ hana:[[100000,5000],[200000,10000],[300000,20000],[500000,30000],[1000000,50000]] },
     benefits:[
-      b('hana-px-small', ['px'], '군마트 30%', { rate:.30, maxAmountExclusive:100000, monthlyCap:5000 }),
-      b('hana-px-large', ['px'], '군마트 20%', { rate:.20, minAmount:100000, monthlyCap:100000, dailyCap:20000 }),
+      b('hana-px', ['px'], '군마트(PX) 20~30% 캐시백', { rateTiers:[
+        { id:'under-30k', maxAmountExclusive:30000, rate:.30, dailyCap:5000, monthlyCap:10000 },
+        { id:'30k-or-more', minAmount:30000, rate:.20, dailyCap:20000, monthlyCap:100000 }
+      ] }),
       b('hana-shop-easy', ['coupang','naverplus'], '쿠팡·네이버플러스 스토어 20%', { rate:.20, monthlyCap:3000, dailyCap:1000, channel:'online' }),
-      b('hana-cu', ['cu'], 'CU 행사품목 10%', { rate:.10, monthlyCap:50000, requiresEvent:true }),
+      b('hana-cu', ['cu'], 'CU 음료·아이스크림·간편식 10%', { rate:.10, monthlyCap:50000, requiresEvent:true, detailTitle:'CU 음료·아이스크림·간편식 · 10%', detailTags:['전월 실적 조건 없음','건당 이용 조건 없음','월 한도 50,000원 (통합한도 미적용)'] }),
+      b('hana-cgv-snack', ['cgv'], 'CGV 팝콘 스몰세트 무료', { flat:8000, requiresMilitary:true, monthlyCount:1, annualCount:6, benefitType:null, unsupported:true, conditionNote:'CGV 매점 또는 공식 앱·웹에서 팝콘 스몰세트 1개 제공' }),
+      b('hana-digital', ['appstore','googleplay','youtube','naverwebtoon','netflix','naverplusmembership','coupangwow'], '디지털 라이프 10%', { rate:.10, monthlyCap:2000, requiresMilitary:true, displayMerchants:['애플 App Store','구글플레이','유튜브 프리미엄','네이버웹툰','넷플릭스','네이버플러스 멤버십','쿠팡와우 멤버십'], conditionNote:'대상별 정기결제·결제수단 제외 조건 확인 필요' }),
       b('hana-transit', ['transit'], '버스·지하철 20%', { rate:.20, minSpend:100000, monthlyCap:10000, group:'hana' }),
       b('hana-hotel', ['military-hotel'], '국군복지단 호텔·콘도 20%', { rate:.20, minSpend:100000, monthlyCap:10000, group:'hana' }),
+      b('hana-park', ['everland','lotteworld'], '놀이공원 이용권 50%', { rate:.50, minSpend:100000, monthlyCount:1, benefitType:'할인', channel:'offline', conditionNote:'이용권 1인 1매 구매에만 적용' }),
       b('hana-starbucks', ['starbucks'], '스타벅스 20%', { rate:.20, minAmount:10000, txnCap:4000, minSpend:100000, group:'hana' }),
       b('hana-restaurant', ['outback','vips'], '아웃백·VIPS 20%', { rate:.20, minAmount:10000, monthlyCap:20000, minSpend:100000, group:'hana' }),
-      b('hana-fastfood', ['burger'], '패스트푸드 5%', { rate:.05, minAmount:10000, monthlyCap:2000, minSpend:100000, group:'hana' }),
+      b('hana-fastfood', ['burger'], '패스트푸드 5%', { rate:.05, minAmount:10000, monthlyCap:2000, minSpend:100000, group:'hana', displayMerchants:['롯데리아','맥도날드','버거킹','맘스터치','KFC','써브웨이'] }),
       b('hana-shopping', ['musinsa','29cm','gmarket','auction','11st'], '온라인쇼핑 10%', { rate:.10, minAmount:10000, monthlyCap:5000, minSpend:100000, group:'hana', channel:'online' }),
-      b('hana-test', ['language-test'], '어학시험 5%', { rate:.05, monthlyCap:5000, minSpend:100000, group:'hana' }),
+      b('hana-test', ['language-test'], '어학시험 5%', { rate:.05, monthlyCap:5000, minSpend:100000, group:'hana', displayMerchants:['TOEIC','OPIc','TEPS','JPT','HSK'], conditionNote:'공식 사이트를 통한 응시료 결제만 적용' }),
       b('hana-book', ['bookstore'], '교보문고·알라딘 5%', { rate:.05, monthlyCap:5000, minSpend:100000, group:'hana' }),
-      b('hana-rail', ['rail'], '광역교통 5%', { rate:.05, monthlyCap:2000, minSpend:100000, group:'hana' }),
+      b('hana-rail', ['rail'], '광역교통 5%', { rate:.05, monthlyCap:2000, minSpend:100000, group:'hana', displayMerchants:['KTX','SRT','ITX','고속버스','시외버스'], conditionNote:'공식 홈페이지·앱 또는 오프라인 결제만 적용' }),
       b('hana-delivery-desire', ['baemin','yogiyo','coupangeats'], '군 급여이체 딜리버리 20%', { rate:.20, monthlyCap:5000, requiresMilitary:true }),
       b('hana-taxi-desire', ['taxi'], '군 급여이체 택시 20%', { rate:.20, monthlyCap:5000, requiresMilitary:true })
     ]
   },
   {
-    id: 'deepdream', issuer: '신한카드', name: 'Deep Dream 체크', kind: '포인트형', source: '카드고릴라 281 · 신한카드 공식 안내',
+    id: 'deepdream', issuer: '신한카드', name: 'Deep Dream 체크', kind: '적립형', source: '카드고릴라 281 · 신한카드 공식 안내',
     groups:{ dream:[[200000,5000],[400000,15000],[800000,30000]] }, benefits:[
       b('dream-base', ['*'], '모두드림 0.2%', { rate:.002, reward:'point', fallback:true }),
       b('dream-area', ['emart','lottemart','homeplus','cu','gs25','seveneleven','oliveyoung','daiso','cgv','starbucks','coffeebean','twosome','overseas','skt','kt','lgu'], 'DREAM 영역 0.6%', { rate:.006, reward:'point', minSpend:200000, group:'dream', replaces:'dream-base' }),
-      b('dream-taxi', ['taxi'], '택시 3·6·9회째 1,000원', { flat:1000, minSpend:200000, specialCount:[3,6,9] }),
-      b('dream-gas', ['gas'], '주말 주유 리터당 40P', { unsupported:true })
+      b('dream-taxi', ['taxi'], '택시 3·6·9회째 1,000P', { flat:1000, reward:'point', minSpend:200000, specialCount:[3,6,9] }),
+      b('dream-gas', ['gas'], '주말 주유 리터당 40P', { reward:'point', unsupported:true })
     ], note:'가장 많이 쓴 DREAM 영역의 1% 적립은 월말 확정이므로 추천에는 보장되는 0.6%만 반영합니다.'
   },
   {
@@ -94,9 +100,9 @@ const cards = [
     ]
   },
   {
-    id: 'kakaopay', issuer: '신한카드', name: '카카오페이 신한 체크카드', kind: '포인트형', source: '카드고릴라 286 · 신한카드 공식 안내',
+    id: 'kakaopay', issuer: '신한카드', name: '카카오페이 신한 체크카드', kind: '적립형', source: '카드고릴라 286 · 신한카드 공식 안내',
     groups:{ kakao:[[300000,5000],[500000,7000],[700000,10000],[1000000,13000]] }, benefits:[
-      b('kakao-pay', ['*'], '카카오페이 결제 2%', { rate:.02, reward:'point', payment:'kakaopay', monthlyCap:10000, fallback:true, domesticOnly:true }),
+      b('kakao-pay', ['*'], '카카오페이 결제 2%', { rate:.02, reward:'point', payment:'kakaopay', monthlyCap:10000, fallback:true, domesticOnly:true, displayMerchants:['카카오페이'] }),
       b('kakao-transit', ['transit'], '대중교통 3%', { rate:.03, reward:'point', minSpend:300000, monthlyCap:5000, group:'kakao' }),
       b('kakao-phone', ['skt','kt','lgu'], '이동통신 자동이체 3%', { rate:.03, reward:'point', minSpend:300000, minAmount:50000, monthlyCap:5000, payment:'autopay', group:'kakao' }),
       b('kakao-cgv', ['cgv'], 'CGV 최대 3,000P', { flat:3000, reward:'point', minSpend:300000, monthlyCount:1, group:'kakao' }),
@@ -110,7 +116,7 @@ const cards = [
     ]
   },
   {
-    id: 'samsungmoney', issuer: 'Samsung Wallet · 우리카드 제휴', name: '삼성월렛 머니', kind: '충전식 결제수단', source: '삼성전자 Samsung Wallet 공식 안내', requiredPayment:'samsungmoney', groups:{}, benefits:[
+    id: 'samsungmoney', issuer: 'Samsung Wallet · 우리카드 제휴', name: '삼성월렛 머니', kind: '적립형', source: '삼성전자 Samsung Wallet 공식 안내', requiredPayment:'samsungmoney', groups:{}, benefits:[
       b('samsungmoney-offline', ['*'], '오프라인 0.5% 기본 적립', { rate:.005, reward:'point', payment:'samsungmoney', channel:'offline', domesticOnly:true, unlimited:true, fallback:true }),
       b('samsungmoney-online', ['naverplus','hmall','lotteon','cjonstyle','wconcept'], '지원 온라인처 1.5% 기본 적립', { rate:.015, reward:'point', payment:'samsungmoney', channel:'online', domesticOnly:true, unlimited:true })
     ], note:'온라인은 삼성월렛 머니를 지원하는 제휴처에서만 사용할 수 있습니다. 우리은행 계좌 연결 및 월별 이벤트 추가 적립은 변경·조기 종료될 수 있어 현재 자동 계산에서 제외했습니다.'
@@ -181,7 +187,12 @@ const cardReferenceUrls = {
   samsungmoney: 'https://r1.community.samsung.com/t5/samsung-wallet/%EC%82%BC%EC%84%B1%EC%9B%94%EB%A0%9B%EB%A8%B8%EB%8B%88-%EA%B2%B0%EC%A0%9C-%ED%98%9C%ED%83%9D/td-p/37921928'
 };
 
-function b(id, merchants, label, options={}) { return { id, merchants, label, reward:'discount', ...options }; }
+function defaultBenefitType(id) {
+  if (id.startsWith('hana-') || id.startsWith('kbank-') || id.startsWith('simple-')) return '캐시백';
+  return '할인';
+}
+
+function b(id, merchants, label, options={}) { return { id, merchants, label, reward:'discount', benefitType:defaultBenefitType(id), ...options }; }
 function mb(id, merchants, label, options={}) { return { id, merchants, label, reward:'discount', provider:'skt', grade:'silver', ...options }; }
 
 const initialState = { period, spends:{}, usage:{}, counts:{}, dailyUsage:{}, dailyCounts:{}, militarySalary:false, carrier:'skt', membershipGrade:'silver', membershipMode:'discount', phoneAmount:'unset', transitMode:'unset', cardEnabled:{} };
@@ -223,11 +234,61 @@ function membershipLabel(benefit) {
   return benefit.label;
 }
 
+function rateTierFor(benefit, amount) {
+  if (!benefit.rateTiers) return null;
+  return benefit.rateTiers.find(tier =>
+    (!tier.minAmount || amount >= tier.minAmount) &&
+    (!tier.maxAmountExclusive || amount < tier.maxAmountExclusive)
+  ) || null;
+}
+
+function benefitRate(benefit, amount) {
+  const tier = rateTierFor(benefit, amount);
+  return tier?.rate ?? (benefit.dynamicRate ? benefit.dynamicRate() : benefit.rate);
+}
+
+function benefitLimit(benefit, tier, property) {
+  return tier?.[property] ?? benefit[property];
+}
+
+function benefitUsageKey(benefit, tier) {
+  return tier ? `${benefit.id}:${tier.id}` : benefit.id;
+}
+
+function benefitPlaceLabel(benefit) {
+  if (benefit.displayMerchants) return benefit.displayMerchants.join(' · ');
+  return benefit.merchants.includes('*')
+    ? '모든 가맹점'
+    : benefit.merchants.map(id => {
+      const merchant = merchants.find(item => item.id === id);
+      return merchant?.category === '통신' ? merchant.label.replace(/ 통신요금$/, '') : merchant?.label || id;
+    }).join(' · ');
+}
+
+function benefitValueLabel(benefit) {
+  if (benefit.rateTiers) {
+    const rates = benefit.rateTiers.map(tier => tier.rate * 100);
+    return `${Math.min(...rates)}~${Math.max(...rates)}%`;
+  }
+  if (benefit.dynamicRate) return '0.2~0.4%';
+  if (benefit.rate) return `${benefit.rate * 100}%`;
+  if (benefit.flat) return `${won.format(benefit.flat)}원`;
+  if (benefit.unitBase && benefit.unitValue) return `${won.format(benefit.unitBase)}원당 ${won.format(benefit.unitValue)}원`;
+  if (benefit.formula === 'movie') return '최대 4,000원';
+  return benefit.label;
+}
+
+function benefitDisplayTitle(benefit) {
+  return `${benefitPlaceLabel(benefit)} · ${benefitValueLabel(benefit)}`;
+}
+
 function rawBenefitValue(benefit, amount) {
   if (benefit.formula === 'movie') return Math.min(4000, Math.max(0, amount - 10000));
   if (benefit.unitBase && benefit.unitValue) return Math.floor(amount / benefit.unitBase) * benefit.unitValue;
-  const rate = benefit.dynamicRate ? benefit.dynamicRate() : benefit.rate;
-  const baseAmount = benefit.txnAmountCap ? Math.min(amount, benefit.txnAmountCap) : amount;
+  const tier = rateTierFor(benefit, amount);
+  const rate = benefitRate(benefit, amount);
+  const txnAmountCap = benefitLimit(benefit, tier, 'txnAmountCap');
+  const baseAmount = txnAmountCap ? Math.min(amount, txnAmountCap) : amount;
   return benefit.flat ? Math.min(benefit.flat, amount) : Math.floor(baseAmount * (rate || 0));
 }
 
@@ -236,7 +297,7 @@ function assessMembershipBenefit(benefit, input, { allowGuideOnly=false }={}) {
   if (!matches(benefit, input.merchant)) return null;
   if (benefit.guideOnly && !allowGuideOnly) reasons.push('세부 상품·이용 조건 확인 필요');
   if (benefit.requiresMembershipEligible && !input.membershipEligible) reasons.push(benefit.eligibleTitle || 'T멤버십 대상 상품 확인 필요');
-  if (benefit.minAmount && input.amount < benefit.minAmount) reasons.push(`건당 ${won.format(benefit.minAmount)}원 이상 필요`);
+  if (benefit.minAmount && input.amount < benefit.minAmount) reasons.push(`최소 결제금액 ${won.format(benefit.minAmount)}원 이상 필요`);
   if (benefit.weekday !== undefined && today.getDay() !== benefit.weekday) reasons.push('화요일에만 적용');
   if (benefit.channel && input.channel !== benefit.channel) reasons.push(`${benefit.channel === 'online' ? '온라인' : '오프라인'} 이용만 적용`);
   if (benefit.excludesEvent && input.eventItem) reasons.push('행사상품은 멤버십 할인 제외');
@@ -276,11 +337,13 @@ function assessBenefit(card, benefit, input) {
   if (!merchantAllowedByProfile(input.merchant)) return null;
   if (benefit.requiresMilitary && !state.militarySalary) return null;
   if (!matches(benefit, input.merchant)) return null;
+  const tier = rateTierFor(benefit, input.amount);
+  if (benefit.rateTiers && !tier) return null;
   if (benefit.unsupported) return { benefit, value:0, reasons:['현재 자동 계산을 지원하지 않는 혜택'] };
   const spend = state.spends[card.id] || 0;
   if (benefit.minSpend && spend < benefit.minSpend) reasons.push(`전월 실적 ${won.format(benefit.minSpend)}원 필요`);
-  if (benefit.minAmount && input.amount < benefit.minAmount) reasons.push(`건당 ${won.format(benefit.minAmount)}원 이상 필요`);
-  if (benefit.maxAmountExclusive && input.amount >= benefit.maxAmountExclusive) reasons.push(`건당 ${won.format(benefit.maxAmountExclusive)}원 미만 결제에 적용`);
+  if (benefit.minAmount && input.amount < benefit.minAmount) reasons.push(`최소 결제금액 ${won.format(benefit.minAmount)}원 이상 필요`);
+  if (benefit.maxAmountExclusive && input.amount >= benefit.maxAmountExclusive) reasons.push(`결제금액 ${won.format(benefit.maxAmountExclusive)}원 미만일 때 적용`);
   if (benefit.payment && input.payment !== benefit.payment) reasons.push(`${paymentLabel(benefit.payment)} 결제 필요`);
   if (benefit.domesticOnly && merchants.find(merchant => merchant.id === input.merchant)?.category === '해외') reasons.push('국내 이용에만 적용');
   if (benefit.channel && input.channel !== benefit.channel) reasons.push(`${benefit.channel === 'online' ? '온라인' : '오프라인'} 결제에만 적용`);
@@ -290,19 +353,24 @@ function assessBenefit(card, benefit, input) {
   if (benefit.specialCount && !benefit.specialCount.includes(count(benefit.id) + 1)) reasons.push(`${benefit.specialCount.join('·')}번째 이용에 적용`);
   if (reasons.length) return { benefit, value:0, reasons };
 
-  const rate = benefit.dynamicRate ? benefit.dynamicRate() : benefit.rate;
-  let baseAmount = benefit.txnAmountCap ? Math.min(input.amount, benefit.txnAmountCap) : input.amount;
+  const rate = benefitRate(benefit, input.amount);
+  const txnAmountCap = benefitLimit(benefit, tier, 'txnAmountCap');
+  const txnCap = benefitLimit(benefit, tier, 'txnCap');
+  const monthlyCap = benefitLimit(benefit, tier, 'monthlyCap');
+  const dailyCap = benefitLimit(benefit, tier, 'dailyCap');
+  const usageKey = benefitUsageKey(benefit, tier);
+  let baseAmount = txnAmountCap ? Math.min(input.amount, txnAmountCap) : input.amount;
   let value = benefit.flat ? Math.min(benefit.flat, input.amount) : Math.floor(baseAmount * (rate || 0));
-  if (benefit.txnCap) value = Math.min(value, benefit.txnCap);
-  if (benefit.monthlyCap) value = Math.min(value, Math.max(0, benefit.monthlyCap - usage(benefit.id)));
-  if (benefit.dailyCap) value = Math.min(value, Math.max(0, benefit.dailyCap - dailyUsage(benefit.id)));
+  if (txnCap) value = Math.min(value, txnCap);
+  if (monthlyCap) value = Math.min(value, Math.max(0, monthlyCap - usage(usageKey)));
+  if (dailyCap) value = Math.min(value, Math.max(0, dailyCap - dailyUsage(usageKey)));
   if (benefit.group) {
     const tiers = card.groups[benefit.group];
     const groupCap = tierValue(tiers, spend);
     if (groupCap > 0 || !benefit.allowBelowGroup) value = Math.min(value, Math.max(0, groupCap - usage(`${card.id}:group:${benefit.group}`)));
   }
   if (value <= 0) reasons.push('이번 달 한도 소진');
-  return { benefit, value, reasons };
+  return { benefit, tier, value, reasons };
 }
 
 function calculate(input) {
@@ -335,10 +403,12 @@ function guideRequiredSpend(card, benefit) {
 function nominalBenefitValue(benefit, amount) {
   if (benefit.minAmount && amount < benefit.minAmount) return 0;
   if (benefit.maxAmountExclusive && amount >= benefit.maxAmountExclusive) return 0;
+  const tier = rateTierFor(benefit, amount);
+  if (benefit.rateTiers && !tier) return 0;
   let value = rawBenefitValue(benefit, amount);
-  if (benefit.txnCap) value = Math.min(value, benefit.txnCap);
-  if (benefit.monthlyCap) value = Math.min(value, benefit.monthlyCap);
-  if (benefit.dailyCap) value = Math.min(value, benefit.dailyCap);
+  if (benefitLimit(benefit, tier, 'txnCap')) value = Math.min(value, benefitLimit(benefit, tier, 'txnCap'));
+  if (benefitLimit(benefit, tier, 'monthlyCap')) value = Math.min(value, benefitLimit(benefit, tier, 'monthlyCap'));
+  if (benefitLimit(benefit, tier, 'dailyCap')) value = Math.min(value, benefitLimit(benefit, tier, 'dailyCap'));
   return value;
 }
 
@@ -435,8 +505,11 @@ function guideStatus(candidate) {
 
 function guideHeadline(candidate) {
   const conditions = [];
-  if (candidate.benefit.minAmount) conditions.push(`${won.format(candidate.benefit.minAmount)}원 이상`);
-  if (candidate.benefit.maxAmountExclusive) conditions.push(`${won.format(candidate.benefit.maxAmountExclusive)}원 미만`);
+  const tier = rateTierFor(candidate.benefit, candidate.amount);
+  if (tier?.minAmount) conditions.push(`결제금액 ${won.format(tier.minAmount)}원 이상`);
+  else if (tier?.maxAmountExclusive) conditions.push(`결제금액 ${won.format(tier.maxAmountExclusive)}원 미만`);
+  if (candidate.benefit.minAmount) conditions.push(`최소 결제 ${won.format(candidate.benefit.minAmount)}원`);
+  if (candidate.benefit.maxAmountExclusive) conditions.push(`결제금액 ${won.format(candidate.benefit.maxAmountExclusive)}원 미만`);
   if (candidate.benefit.requiresEvent) conditions.push('행사상품');
   return `${candidate.placeLabel}${conditions.length ? ` · ${conditions.join(' · ')}` : ''}`;
 }
@@ -444,11 +517,14 @@ function guideHeadline(candidate) {
 function guideRuleTags(candidate) {
   const benefit = candidate.benefit;
   const tags = [];
-  if (benefit.minAmount) tags.push(`${won.format(benefit.minAmount)}원 이상`);
-  if (benefit.maxAmountExclusive) tags.push(`${won.format(benefit.maxAmountExclusive)}원 미만`);
+  const tier = rateTierFor(benefit, candidate.amount);
+  if (tier?.minAmount) tags.push(`결제금액 ${won.format(tier.minAmount)}원 이상`);
+  else if (tier?.maxAmountExclusive) tags.push(`결제금액 ${won.format(tier.maxAmountExclusive)}원 미만`);
+  if (benefit.minAmount) tags.push(`최소 결제 ${won.format(benefit.minAmount)}원`);
+  if (benefit.maxAmountExclusive) tags.push(`결제금액 ${won.format(benefit.maxAmountExclusive)}원 미만`);
   if (candidate.requiredSpend) tags.push(`전월 ${shortSpend(candidate.requiredSpend)}`); else tags.push('실적 조건 없음');
-  if (benefit.txnCap) tags.push(`건당 최대 ${won.format(benefit.txnCap)}원`);
-  if (benefit.txnAmountCap) tags.push(`혜택 계산 ${won.format(benefit.txnAmountCap)}원까지`);
+  if (benefit.txnCap) tags.push(`건당 한도 ${won.format(benefit.txnCap)}원`);
+  if (benefit.txnAmountCap) tags.push(`혜택 계산 대상 최대 ${won.format(benefit.txnAmountCap)}원`);
   if (benefit.dailyCap) tags.push(`일 최대 ${won.format(benefit.dailyCap)}원`);
   if (benefit.monthlyCap) tags.push(`월 최대 ${won.format(benefit.monthlyCap)}원`);
   if (benefit.monthlyCount) tags.push(`월 ${benefit.monthlyCount}회`);
@@ -458,7 +534,6 @@ function guideRuleTags(candidate) {
   if (benefit.requiresEvent) tags.push('행사 대상 품목');
   if (benefit.requiresMilitary) tags.push('군 급여이체');
   if (benefit.group) tags.push('통합 한도 적용');
-  if (benefit.unlimited) tags.push('기본 적립 한도 없음');
   if (candidate.isMembership) tags.unshift('SKT SILVER');
   if (candidate.isMembership) tags.push('T멤버십 바코드·앱 사용');
   if (benefit.requiresMembershipEligible) tags.push(benefit.eligibleTitle || '지정 대상 상품만');
@@ -499,7 +574,7 @@ function openGuideDetail(categoryId) {
   let meta = hasPerformanceSettings()
     ? '현재 입력한 실적과 기록된 월 한도를 우선 반영한 순서입니다.'
     : '전월 실적이 아직 없어 혜택을 받을 수 있다고 가정한 대표 순서입니다.';
-  if (categoryId === '교통' && state.transitMode === 'kpass') meta += ' K-패스 사용으로 국내 버스·지하철 카드 혜택은 제외했습니다.';
+  if (categoryId === '교통' && state.transitMode === 'kpass') meta += ' K-패스 사용으로 버스·지하철 카드 혜택은 제외했습니다.';
   document.querySelector('#guideDetailMeta').textContent = meta;
   const transitNotice = categoryId === '교통' && state.transitMode === 'kpass' ? '<div class="verification-note">버스·지하철은 K-패스를 사용하는 것으로 반영했습니다. 아래에는 KTX·SRT·택시처럼 별도로 비교할 교통 혜택만 표시합니다.</div>' : '';
   const membershipNotice = candidates.some(candidate => candidate.isMembership) ? `<div class="verification-note membership-source-note">T멤버십 혜택은 ${membershipCheckedAt} 공식 안내 확인 기준입니다. 상품·매장별 제외 조건이 있으므로 결제 전 바코드 화면을 확인하세요. <a href="${membershipSourceUrl}" target="_blank" rel="noreferrer">공식 혜택 보기 ↗</a></div>` : '';
@@ -595,10 +670,11 @@ function recordMembership(assessment) {
 }
 
 function recordPayment(result) {
-  result.eligible.forEach(({benefit, value}) => {
-    state.usage[benefit.id] = usage(benefit.id) + value;
+  result.eligible.forEach(({benefit, tier, value}) => {
+    const usageKey = benefitUsageKey(benefit, tier);
+    state.usage[usageKey] = usage(usageKey) + value;
     state.counts[benefit.id] = count(benefit.id) + 1;
-    state.dailyUsage[`${dayKey}:${benefit.id}`] = dailyUsage(benefit.id) + value;
+    state.dailyUsage[`${dayKey}:${usageKey}`] = dailyUsage(usageKey) + value;
     state.dailyCounts[`${dayKey}:${benefit.id}`] = dailyCount(benefit.id) + 1;
     if (benefit.group) {
       const groupKey = `${result.card.id}:group:${benefit.group}`;
@@ -641,16 +717,16 @@ function openCardDetail(cardId) {
   const card = cards.find(item => item.id === cardId);
   if (!card) return;
   document.querySelector('#cardDetailTitle').textContent = card.name;
-  const spendSet = Object.prototype.hasOwnProperty.call(state.spends, card.id);
-  const spendText = !performanceThresholds(card).length ? '전월 실적 조건 없음' : spendSet ? (state.spends[card.id] ? `전월 실적 ${won.format(state.spends[card.id])}원 이상 구간` : '전월 실적 최저 구간') : '전월 실적 미설정';
-  document.querySelector('#cardDetailMeta').textContent = `${card.issuer} · ${card.kind} · ${isCardEnabled(card.id) ? spendText : '개인 설정에서 추천 제외 중'}`;
+  document.querySelector('#cardDetailMeta').textContent = `${card.issuer} · ${card.kind}`;
 
   const groupEntries = Object.entries(card.groups || {});
   const groupHtml = groupEntries.length ? `<section class="rule-section"><h3>통합 한도</h3>${groupEntries.map(([groupId, tiers]) => `<table class="tier-table"><thead><tr><th>전월 실적</th><th>월 통합 한도</th></tr></thead><tbody>${tiers.map(([spend, cap]) => `<tr><td>${won.format(spend)}원 이상</td><td>${won.format(cap)}원</td></tr>`).join('')}</tbody></table>`).join('')}</section>` : '';
-  const benefitsHtml = card.benefits.map(benefit => {
-    const tags = describeBenefit(benefit, card);
-    const rewardName = benefit.reward === 'point' ? '포인트' : benefit.flat || benefit.rate || benefit.dynamicRate ? '할인·캐시백' : '기타';
-    return `<article class="benefit-rule"><div class="benefit-rule-head"><h4>${escapeHtml(benefit.label)}</h4><span class="reward-badge">${rewardName}</span></div><div class="rule-tags">${tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div></article>`;
+  const detailBenefits = card.benefits.filter(benefit => !benefit.hideInDetail);
+  const benefitsHtml = detailBenefits.map(benefit => {
+    const tags = benefit.detailTags || describeBenefit(benefit, card);
+    const rewardName = benefit.reward === 'point' ? '적립' : benefit.benefitType;
+    const rewardBadge = rewardName ? `<span class="reward-badge">${escapeHtml(rewardName)}</span>` : '';
+    return `<article class="benefit-rule"><div class="benefit-rule-head"><h4>${escapeHtml(benefit.detailTitle || benefitDisplayTitle(benefit))}</h4>${rewardBadge}</div><div class="rule-tags">${tags.map(tag => `<span${tag === '전월 실적 조건 없음' ? ' class="no-performance-condition"' : ''}>${escapeHtml(tag)}</span>`).join('')}</div></article>`;
   }).join('');
   const note = card.note ? `<div class="verification-note">${escapeHtml(card.note)}</div>` : '';
   const sourceUrl = cardSourceUrls[card.id];
@@ -658,42 +734,48 @@ function openCardDetail(cardId) {
   const referenceUrl = gorillaUrl || cardReferenceUrls[card.id];
   const referenceLabel = gorillaUrl ? '카드고릴라에서 대조하기' : 'Samsung Members 혜택 안내';
   const referenceLink = referenceUrl ? `<a class="source-link secondary" href="${referenceUrl}" target="_blank" rel="noreferrer">${referenceLabel} <span aria-hidden="true">↗</span></a>` : '';
-  document.querySelector('#cardDetailContent').innerHTML = `<div class="verification-note">아래 내용은 현재 추천 계산에 실제로 등록된 규칙입니다. 라운지·보험·브랜드 서비스·수수료 면제처럼 결제 금액 추천에 직접 쓰지 않는 부가 서비스는 포함하지 않았습니다.</div>${groupHtml}<section class="rule-section"><h3>추천 계산에 등록된 혜택 ${card.benefits.length}개</h3><div class="benefit-rule-list">${benefitsHtml}</div></section>${note}<section class="rule-section"><h3>정보 출처</h3><p>${escapeHtml(card.source)}</p><div class="source-links"><a class="source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">공식 안내 열기 <span aria-hidden="true">↗</span></a>${referenceLink}</div></section>`;
+  document.querySelector('#cardDetailContent').innerHTML = `<div class="verification-note">카드사 상품 안내를 바탕으로 정리한 주요 혜택과 적용 조건입니다. 실제 적용은 카드사의 가맹점 분류와 세부 약관에 따릅니다.</div>${groupHtml}<section class="rule-section"><h3>정리된 혜택 ${detailBenefits.length}개</h3><div class="benefit-rule-list">${benefitsHtml}</div></section>${note}<section class="rule-section"><h3>정보 출처</h3><p>${escapeHtml(card.source)}</p><div class="source-links"><a class="source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">공식 안내 열기 <span aria-hidden="true">↗</span></a>${referenceLink}</div></section>`;
   document.querySelector('#cardDialog').showModal();
   document.querySelector('#cardDialog .dialog-card').scrollTop = 0;
 }
 
 function describeBenefit(benefit, card) {
   const tags = [];
-  const places = benefit.merchants.includes('*') ? '모든 가맹점' : benefit.merchants.map(id => merchants.find(m => m.id === id)?.label || id).join(' · ');
-  tags.push(`적용처: ${places}`);
-  if (benefit.dynamicRate) tags.push('평일 0.2% · 주말 0.4% (평일 공휴일은 현재 자동 판정 제외)');
-  else if (benefit.rate) tags.push(`${benefit.rate * 100}%`);
-  if (benefit.flat) tags.push(`건당 ${won.format(benefit.flat)}원${benefit.reward === 'point' ? ' 상당 적립' : ''}`);
   if (benefit.minSpend) tags.push(`전월 실적 ${won.format(benefit.minSpend)}원 이상`); else tags.push('전월 실적 조건 없음');
-  if (benefit.minAmount) tags.push(`건당 ${won.format(benefit.minAmount)}원 이상`);
-  if (benefit.maxAmountExclusive) tags.push(`건당 ${won.format(benefit.maxAmountExclusive)}원 미만`);
-  if (benefit.txnCap) tags.push(`건당 혜택 최대 ${won.format(benefit.txnCap)}원`);
-  if (benefit.txnAmountCap) tags.push(`건당 ${won.format(benefit.txnAmountCap)}원까지 혜택 계산`);
-  if (benefit.dailyCap) tags.push(`일 한도 ${won.format(benefit.dailyCap)}원`);
-  if (benefit.monthlyCap) tags.push(`월 개별 한도 ${won.format(benefit.monthlyCap)}원`);
+  if (benefit.rateTiers) {
+    const rangeLabel = tier => tier.minAmount ? `${won.format(tier.minAmount)}원 이상` : `${won.format(tier.maxAmountExclusive)}원 미만`;
+    benefit.rateTiers.forEach(tier => {
+      const limits = [tier.dailyCap && `일 한도 ${won.format(tier.dailyCap)}원`, tier.monthlyCap && `월 한도 ${won.format(tier.monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`].filter(Boolean);
+      tags.push(`결제금액 ${rangeLabel(tier)} · ${tier.rate * 100}%${limits.length ? ` · ${limits.join(' · ')}` : ''}`);
+    });
+  }
+  if (benefit.minAmount) tags.push(`건당 이용금액 ${won.format(benefit.minAmount)}원 이상`);
+  else if (benefit.maxAmountExclusive) tags.push(`건당 이용금액 ${won.format(benefit.maxAmountExclusive)}원 미만`);
+  else tags.push('건당 이용 조건 없음');
+  if (benefit.txnCap) tags.push(`건당 한도 ${won.format(benefit.txnCap)}원`);
+  if (benefit.txnAmountCap) tags.push(`혜택 계산 대상 결제금액 최대 ${won.format(benefit.txnAmountCap)}원`);
+  if (!benefit.rateTiers && benefit.dailyCap) tags.push(`일 한도 ${won.format(benefit.dailyCap)}원`);
   if (benefit.dailyCount) tags.push(`일 ${benefit.dailyCount}회`);
-  if (benefit.monthlyCount) tags.push(`월 ${benefit.monthlyCount}회`);
+  const monthlyCapIsDerivedFromCount = benefit.flat && benefit.monthlyCount && benefit.monthlyCap === benefit.flat * benefit.monthlyCount;
+  if (benefit.monthlyCount) {
+    tags.push(`월 ${benefit.monthlyCount}회${benefit.group ? ' (통합한도 적용)' : ''}`);
+    if (benefit.monthlyCap && !monthlyCapIsDerivedFromCount) tags.push(`월 한도 ${won.format(benefit.monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`);
+    else if (!benefit.monthlyCap && !benefit.group) tags.push('월 한도 없음 (통합한도 미적용)');
+  } else if (benefit.monthlyCap) tags.push(`월 한도 ${won.format(benefit.monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`);
+  else if (benefit.group) tags.push('월 한도 통합한도 적용');
+  else tags.push('월 한도 없음 (통합한도 미적용)');
+  if (benefit.annualCount) tags.push(`연 ${benefit.annualCount}회`);
   if (benefit.specialCount) tags.push(`월 ${benefit.specialCount.join('·')}번째 결제`);
-  if (benefit.payment) tags.push(`${paymentLabel(benefit.payment)}만 적용`);
+  if (benefit.dynamicRate) tags.push('결제일 기준 평일·주말 적용');
+  const paymentShownInTitle = benefit.payment && (benefit.detailTitle?.startsWith(paymentLabel(benefit.payment)) || benefit.displayMerchants?.includes(paymentLabel(benefit.payment)));
+  if (benefit.payment && !paymentShownInTitle) tags.push(`${paymentLabel(benefit.payment)}만 적용`);
   if (benefit.channel) tags.push(`${benefit.channel === 'online' ? '온라인' : '오프라인'} 결제만 적용`);
   if (benefit.domesticOnly) tags.push('국내 이용만 적용');
   if (benefit.requiresEvent) tags.push('행사 대상 품목만 적용');
   if (benefit.requiresMilitary) tags.push('군 급여이체 조건 필요');
-  if (benefit.requiresMilitary && !state.militarySalary) tags.push('개인 설정상 추천 제외');
-  if (benefit.merchants.includes('transit') && state.transitMode === 'kpass') tags.push('K-패스 설정으로 추천 제외');
-  const telecomBenefit = benefit.merchants.some(id => merchants.find(merchant => merchant.id === id)?.category === '통신');
-  if (telecomBenefit && state.carrier === 'none') tags.push('통신요금 없음 설정으로 추천 제외');
-  else if (telecomBenefit && state.carrier && state.carrier !== 'unset' && !benefit.merchants.includes(state.carrier)) tags.push('현재 통신사와 불일치');
-  if (benefit.group) tags.push('카드 월 통합 한도 적용');
+  if (benefit.conditionNote) tags.push(benefit.conditionNote);
   if (benefit.unlimited) tags.push('기본 적립 한도 없음');
   if (benefit.replaces) tags.push('상위 적립률 적용 시 기본 적립 대체');
-  if (benefit.unsupported) tags.push('현재 추천 금액 자동 계산 제외');
   return tags;
 }
 
