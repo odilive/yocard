@@ -22,17 +22,19 @@ const merchants = [
   ['emart', '이마트', '대형마트'], ['lottemart', '롯데마트', '대형마트'], ['homeplus', '홈플러스', '대형마트'], ['hanaro', '농협 하나로마트·클럽', '대형마트'], ['traders', '이마트 트레이더스', '대형마트'], ['vicmarket', '롯데 VIC마켓', '대형마트'],
   ['lotte-department', '롯데백화점', '백화점'], ['hyundai-department', '현대백화점', '백화점'], ['shinsegae-department', '신세계백화점', '백화점'], ['galleria-department', '갤러리아백화점', '백화점'], ['gshome', 'GS홈쇼핑', '온라인쇼핑'], ['lgelectronics', 'LG전자·하이프라자', '생활·뷰티'], ['beautyplex', '뷰티플렉스', '생활·뷰티'],
   ['px', '군마트(PX)', '군복지'], ['military-hotel', '국군복지단 호텔·콘도', '군복지'], ['language-test', '어학시험', '교육·서점'], ['academy', '학원', '교육·서점'], ['kyobo', '교보문고', '교육·서점'], ['aladin', '알라딘', '교육·서점'],
-  ['overseas', '해외 일반 가맹점', '해외'], ['other', '그 외 일반 가맹점', '기타']
+  ['overseas', '해외 일반 가맹점', '해외'],
+  ['other-offline', '오프라인 가맹점', '기타 가맹점'], ['other-online', '온라인 가맹점', '기타 가맹점']
 ].map(([id, label, category]) => ({ id, label, category }));
 
 // 계산기 선택창은 카드사 분류가 아니라, 실제 결제처를 떠올리기 쉬운 순서로 고정한다.
-const merchantCategoryOrder = ['카페','베이커리','편의점','패스트푸드','외식','배달','생활·뷰티','온라인쇼핑','대형마트','백화점','통신','구독·디지털','영화·문화','놀이공원','교통·주유','교육·서점','군복지','해외','기타'];
+const merchantCategoryOrder = ['카페','베이커리','편의점','패스트푸드','외식','배달','생활·뷰티','온라인쇼핑','대형마트','백화점','통신','구독·디지털','영화·문화','놀이공원','교통·주유','교육·서점','군복지','해외','기타 가맹점'];
 const categoryAliases = {
   '구독':'구독·디지털', '디지털':'구독·디지털',
   '생활':'생활·뷰티', '뷰티':'생활·뷰티',
   '영화':'영화·문화', '문화':'영화·문화',
   '교통':'교통·주유', '주유':'교통·주유',
-  '교육':'교육·서점', '서점':'교육·서점'
+  '교육':'교육·서점', '서점':'교육·서점',
+  '기타':'기타 가맹점'
 };
 
 // 금액 미정일 때 혜택의 상대적인 크기를 비교하기 위한 카테고리별 기준금액이다.
@@ -116,7 +118,7 @@ const cards = [
   },
   {
     id: 'kakaobank', issuer: '카카오뱅크', name: '프렌즈 체크카드', kind: '캐시백형', source: '카카오뱅크 공식 안내 · 캐시백 프로모션 2026 (2026.02.01~2027.01.31)', groups:{ kbankPromo:[[300000,1000]] }, groupLabels:{ kbankPromo:'GS25·커피 통합 한도' }, benefits:[
-      b('kbank-base', ['*'], '조건 없는 기본 캐시백', { dynamicRate:() => [0,6].includes(today.getDay()) ? .004 : .002, unlimited:true, fallback:true }),
+      b('kbank-base', ['*'], '조건 없는 기본 캐시백', { dynamicRate:() => [0,6].includes(today.getDay()) ? .004 : .002, unlimited:true, fallback:true, conditionNote:'평일 0.2% · 주말 0.4%' }),
       b('kbank-baemin', ['baemin'], '배달의민족 1,000원', { flat:1000, minAmount:20000, minSpend:300000, monthlyCount:1, conditionNote:'배민페이 또는 카카오뱅크 카드 직접 결제만 적용' }),
       b('kbank-gs25', ['gs25'], 'GS25 100원', { flat:100, minAmount:5000, minSpend:300000, monthlyCount:10, group:'kbankPromo', conditionNote:'오프라인 결제만 적용' }),
       b('kbank-coffee', ['compose','megacoffee','paikdabang'], '컴포즈커피·메가MGC커피·빽다방 100원', { flat:100, minAmount:2000, minSpend:300000, monthlyCount:10, group:'kbankPromo', conditionNote:'오프라인 결제만 적용' }),
@@ -483,8 +485,9 @@ function merchantAllowedByProfile(merchantId) {
 }
 
 function merchantHasRegisteredBenefit(merchantId) {
+  const genericMerchant = ['other-offline','other-online'].includes(merchantId);
   const hasCardBenefit = cards.some(card => isCardEnabled(card.id) && card.benefits.some(benefit =>
-    benefit.merchants.includes(merchantId) || (merchantId === 'other' && benefit.merchants.includes('*'))
+    benefit.merchants.includes(merchantId) || (genericMerchant && benefit.merchants.includes('*'))
   ));
   const hasMembershipBenefit = activeMembershipBenefits().some(benefit => benefit.merchants.includes(merchantId));
   return hasCardBenefit || hasMembershipBenefit;
@@ -588,6 +591,8 @@ function shortSpend(amount) {
 
 function paymentLabel(id) { return ({card:'일반 카드',kbpay:'KB Pay',kakaopay:'카카오페이',samsungmoney:'삼성월렛 머니',autopay:'자동이체'})[id] || id; }
 function channelForMerchant(merchantId) {
+  if (merchantId === 'other-online') return 'online';
+  if (merchantId === 'other-offline') return 'offline';
   const category = merchants.find(merchant => merchant.id === merchantId)?.category;
   return ['온라인쇼핑','구독·디지털'].includes(category) ? 'online' : 'offline';
 }
@@ -756,8 +761,13 @@ function strategyScore(benefit, input) {
 
 function merchantStrategies(input, merchant) {
   const merchantInput = { ...input, merchant:merchant.id, channel:channelForMerchant(merchant.id) };
+  const genericMerchant = ['other-offline','other-online'].includes(merchant.id);
   const cardStrategies = cards.flatMap(card => card.benefits
-    .filter(benefit => isCardEnabled(card.id) && benefit.merchants.includes(merchant.id))
+    .filter(benefit =>
+      isCardEnabled(card.id) &&
+      (genericMerchant ? benefit.merchants.includes('*') : benefit.merchants.includes(merchant.id)) &&
+      (!benefit.channel || benefit.channel === merchantInput.channel)
+    )
     .map(benefit => {
       const strategyInput = { ...merchantInput, eventItem:!!benefit.requiresEvent, membershipEligible:!!benefit.requiresMembershipEligible };
       const assessment = merchantInput.amount ? assessBenefit(card, benefit, strategyInput, { ignorePerformance:true, ignorePersonal:true }) : null;
