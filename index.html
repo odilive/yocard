@@ -10,27 +10,37 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="요카드 YOCARD 홈">
+    <div class="brand">
       <span class="brand-mark" aria-hidden="true">✓</span>
-      <span>요카드 <small>YOCARD</small></span>
-    </a>
+      <span class="brand-copy">
+        <span class="brand-name">요카드 <small>YOCARD</small></span>
+        <span class="brand-tagline">여기서는, 요 카드!</span>
+      </span>
+    </div>
     <div class="header-actions">
       <span class="period" id="periodLabel"></span>
-      <button class="button button-quiet" id="openStatus" type="button">내 카드·설정</button>
+      <button class="button button-quiet" id="openStatus" type="button">내 카드 설정</button>
     </div>
   </header>
 
   <main id="top" class="shell">
     <section class="decision-panel" aria-labelledby="decisionTitle">
-      <div class="section-kicker">혜택 찾기</div>
+      <div class="section-kicker">할인카드 찾기</div>
       <h1 id="decisionTitle">어디서 결제하나요?</h1>
-      <p class="lead">카테고리나 브랜드를 고르세요. 금액이 정해졌다면 받을 수 있는 혜택까지 계산해 드려요.</p>
+      <p class="lead">구매처를 고르면 가장 유리한 카드와 멤버십 조합을 찾아드려요.</p>
 
       <form id="recommendForm" class="recommend-form">
-        <div class="field field-merchant">
-          <label for="merchant">구매처</label>
+        <div class="field field-category">
+          <label for="merchantCategory">카테고리</label>
           <div class="select-wrap">
-            <select id="merchant" required></select>
+            <select id="merchantCategory" required></select>
+          </div>
+        </div>
+
+        <div class="field field-merchant">
+          <label for="merchant">세부 브랜드</label>
+          <div class="select-wrap">
+            <select id="merchant"></select>
           </div>
         </div>
 
@@ -50,13 +60,12 @@
         </div>
 
         <button class="button button-primary submit-button" type="submit">
-          <span>혜택 비교하기</span><span aria-hidden="true">→</span>
+          <span>추천 결과 보기</span><span aria-hidden="true">→</span>
         </button>
       </form>
       <section class="favorites-panel" aria-labelledby="favoritesTitle">
         <div class="favorites-heading">
           <h2 id="favoritesTitle">즐겨찾기</h2>
-          <span>누르면 금액 미정으로 바로 비교</span>
         </div>
         <div class="favorites-list" id="favoritesList"></div>
       </section>
@@ -79,23 +88,32 @@
     <form method="dialog" class="dialog-card" id="statusForm">
       <div class="dialog-head">
         <div>
-          <div class="section-kicker">보유 카드 + 개인 설정</div>
-          <h2>내 카드·설정</h2>
-          <p>카드 혜택을 확인하고, 추천에 사용할 조건과 전월 실적 구간을 관리합니다.</p>
+          <h2>내 카드 설정</h2>
+          <p>보유 카드와 전월 실적, T멤버십 정보를 관리합니다.</p>
         </div>
         <button class="close-button" value="cancel" aria-label="닫기" type="submit">×</button>
       </div>
+      <section class="card-picker" id="cardPicker" aria-label="카드 추가">
+        <div class="card-picker-tools">
+          <div class="card-search"><input id="cardSearch" type="search" autocomplete="off" aria-label="추가할 카드 검색" placeholder="추가할 카드명 · 카드사 · 혜택 검색"><button id="applyCardSearch" type="button">검색</button></div>
+          <div class="card-picker-count" id="cardPickerCount" hidden></div>
+        </div>
+        <div class="card-picker-list" id="cardPickerList" hidden></div>
+      </section>
+      <div class="status-list" id="statusList"></div>
       <section class="profile-settings" aria-labelledby="profileSettingsTitle">
-        <h3 id="profileSettingsTitle">평소 설정</h3>
+        <div class="profile-settings-head">
+          <div>
+            <h3 id="profileSettingsTitle">통신사 혜택 추가 <small>(선택)</small></h3>
+            <p>통신사와 멤버십 정보를 입력하면 카드 혜택과 함께 비교합니다.</p>
+          </div>
+          <button class="profile-detail-button" id="openMembershipDetail" type="button">T멤버십 혜택 보기</button>
+        </div>
         <div class="profile-grid">
-          <label class="profile-field" for="carrier"><span>내 통신사</span><select id="carrier"><option value="unset">미설정</option><option value="skt">SKT</option><option value="kt">KT</option><option value="lgu">LG U+</option><option value="liivm">Liiv M</option><option value="mvno">기타 알뜰폰</option><option value="none">통신요금 없음</option></select></label>
-          <label class="profile-field" for="membershipGrade"><span>통신사 멤버십 등급</span><select id="membershipGrade"><option value="silver">SILVER</option><option value="gold" disabled>GOLD (미등록)</option><option value="vip" disabled>VIP (미등록)</option><option value="lite" disabled>LITE (미등록)</option><option value="none">사용 안 함</option></select></label>
-          <label class="profile-field" for="membershipMode"><span>T멤버십 이용 방식</span><select id="membershipMode"><option value="discount">할인형</option><option value="point">적립형</option></select><small>현재 SKT SILVER 상시 혜택이 추천에 등록되어 있습니다.</small></label>
-          <label class="profile-field" for="phoneAmount"><span>월 통신요금</span><select id="phoneAmount"><option value="unset">미설정</option><option value="under10000">1만원 미만</option><option value="10000">1만원 이상~5만원 미만</option><option value="50000">5만원 이상</option><option value="none">통신요금 없음</option></select></label>
+          <label class="profile-field" for="carrier"><span>통신사</span><select id="carrier"><option value="skt">SKT</option><option value="none">통신사 혜택 사용 안 함</option></select></label>
+          <label class="profile-field" for="membershipGrade"><span>멤버십 등급</span><select id="membershipGrade"><option value="silver">SILVER</option><option value="gold">GOLD</option><option value="vip">VIP</option><option value="none">사용 안 함</option></select></label>
         </div>
       </section>
-      <div class="status-section-head"><h3>보유 카드</h3><span>카드 이름을 누르면 전체 혜택 확인</span></div>
-      <div class="status-list" id="statusList"></div>
       <div class="dialog-actions">
         <button class="button button-danger" id="resetUsage" type="button">이번 달 기록 초기화</button>
         <button class="button button-primary" id="saveStatus" value="default" type="submit">저장하고 다시 계산</button>
