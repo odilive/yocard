@@ -8,7 +8,7 @@ const initialState = {
   spends:{ hana:100000 },
   carrier:'skt',
   membershipGrade:'silver',
-  ownedCards:cards.map(card => card.id),
+  ownedCards:[...defaultOwnedCardIds],
   favorites:['category:편의점','category:온라인쇼핑']
 };
 let state = loadState();
@@ -94,13 +94,33 @@ function scheduledBenefitRate(schedule) {
   return undefined;
 }
 
+function dateKey(date=today) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function activePromotion(benefit) {
+  if (!benefit.promotion) return null;
+  const current = dateKey();
+  if (benefit.promotion.from && current < benefit.promotion.from) return null;
+  if (benefit.promotion.through && current > benefit.promotion.through) return null;
+  return benefit.promotion;
+}
+
+function effectiveBenefitProperty(benefit, property) {
+  const promotion = activePromotion(benefit);
+  return promotion?.[property] ?? benefit[property];
+}
+
+function percentNumber(rate) { return Number((rate * 100).toFixed(2)); }
+function percentLabel(rate) { return `${percentNumber(rate)}%`; }
+
 function benefitRate(benefit, amount) {
   const tier = rateTierFor(benefit, amount);
-  return tier?.rate ?? scheduledBenefitRate(benefit.rateSchedule) ?? benefit.rate;
+  return tier?.rate ?? scheduledBenefitRate(benefit.rateSchedule) ?? effectiveBenefitProperty(benefit, 'rate');
 }
 
 function benefitLimit(benefit, tier, property) {
-  return tier?.[property] ?? benefit[property];
+  return tier?.[property] ?? effectiveBenefitProperty(benefit, property);
 }
 
 function benefitPlaceLabel(benefit) {
@@ -116,11 +136,12 @@ function benefitPlaceLabel(benefit) {
 function benefitValueLabel(benefit) {
   if (benefit.valueLabel) return benefit.valueLabel;
   if (benefit.rateTiers) {
-    const rates = benefit.rateTiers.map(tier => tier.rate * 100);
+    const rates = benefit.rateTiers.map(tier => percentNumber(tier.rate));
     return `${Math.min(...rates)}~${Math.max(...rates)}%`;
   }
+  if (activePromotion(benefit)?.rate) return percentLabel(activePromotion(benefit).rate);
   if (benefit.rateSchedule) return benefit.dynamicRateLabel || '변동 적립률';
-  if (benefit.rate) return `${benefit.rate * 100}%`;
+  if (benefit.rate) return percentLabel(benefit.rate);
   if (benefit.flat) return `${won.format(benefit.flat)}원`;
   if (benefit.unitBase && benefit.unitValue) return `${won.format(benefit.unitBase)}원당 ${won.format(benefit.unitValue)}원`;
   if (benefit.formula === 'movie') return '최대 4,000원';
@@ -142,6 +163,14 @@ function rawBenefitValue(benefit, amount) {
   const rate = benefitRate(benefit, amount);
   const txnAmountCap = benefitLimit(benefit, tier, 'txnAmountCap');
   const baseAmount = txnAmountCap ? Math.min(amount, txnAmountCap) : amount;
+  const baseRate = benefitLimit(benefit, tier, 'baseRate');
+  const additionalRate = benefitLimit(benefit, tier, 'additionalRate');
+  if (baseRate != null && additionalRate != null) {
+    const baseValue = Math.floor(baseAmount * baseRate);
+    const additionalCap = benefitLimit(benefit, tier, 'additionalMonthlyCap');
+    const additionalValue = Math.floor(baseAmount * additionalRate);
+    return baseValue + (additionalCap ? Math.min(additionalValue, additionalCap) : additionalValue);
+  }
   return benefit.flat ? Math.min(benefit.flat, amount) : Math.floor(baseAmount * (rate || 0));
 }
 
@@ -206,9 +235,9 @@ function merchantAllowedByProfile(merchantId) {
 }
 
 function merchantHasRegisteredBenefit(merchantId) {
-  const genericMerchant = ['other-offline','other-online'].includes(merchantId);
+  const merchant = merchants.find(item => item.id === merchantId);
   const hasCardBenefit = cards.some(card => isCardEnabled(card.id) && card.benefits.some(benefit =>
-    benefit.merchants.includes(merchantId) || (genericMerchant && benefit.merchants.includes('*'))
+    merchant && visibleBenefitMatch(benefit, merchant)
   ));
   const hasMembershipBenefit = activeMembershipBenefits().some(benefit => benefit.merchants.includes(merchantId));
   return hasCardBenefit || hasMembershipBenefit;
@@ -218,7 +247,24 @@ function merchantAvailableForSelection(merchant) {
   return merchantAllowedByProfile(merchant.id) && merchantHasRegisteredBenefit(merchant.id);
 }
 
-function matches(benefit, merchantId) { return benefit.merchants.includes('*') || benefit.merchants.includes(merchantId); }
+function matches(benefit, merchantId) {
+  if (benefit.excludesMerchants?.includes(merchantId)) return false;
+  if (benefit.merchants.includes('*') || benefit.merchants.includes(merchantId)) return true;
+  const category = merchants.find(merchant => merchant.id === merchantId)?.category;
+  return !!category && benefit.merchantCategories?.includes(category);
+}
+
+function visibleBenefitMatch(benefit, merchant) {
+  if (benefit.excludesMerchants?.includes(merchant.id)) return false;
+  const direct = benefit.merchants.includes(merchant.id) || benefit.merchantCategories?.includes(merchant.category);
+  const genericMerchant = ['other-offline','other-online'].includes(merchant.id);
+  return direct || (benefit.merchants.includes('*') && (genericMerchant || benefit.showAtSpecific));
+}
+
+function replacementIds(benefit) {
+  if (!benefit.replaces) return [];
+  return Array.isArray(benefit.replaces) ? benefit.replaces : [benefit.replaces];
+}
 
 function assessBenefit(card, benefit, input, { ignorePerformance=false, ignorePersonal=false }={}) {
   const reasons = [];
@@ -242,16 +288,21 @@ function assessBenefit(card, benefit, input, { ignorePerformance=false, ignorePe
   if (reasons.length) return { benefit, value:0, reasons };
 
   const rate = benefitRate(benefit, input.amount);
+  const baseRate = benefitLimit(benefit, tier, 'baseRate');
+  const additionalRate = benefitLimit(benefit, tier, 'additionalRate');
+  const hasRateComponents = baseRate != null && additionalRate != null;
   const txnAmountCap = benefitLimit(benefit, tier, 'txnAmountCap');
   const txnCap = benefitLimit(benefit, tier, 'txnCap');
-  const monthlyCap = benefitLimit(benefit, tier, 'monthlyCap');
+  const monthlyCap = benefit.monthlyCapTiers
+    ? tierValue(benefit.monthlyCapTiers, calculationSpend)
+    : benefitLimit(benefit, tier, 'monthlyCap');
   const dailyCap = benefitLimit(benefit, tier, 'dailyCap');
   let baseAmount = txnAmountCap ? Math.min(input.amount, txnAmountCap) : input.amount;
-  let value = benefit.flat ? Math.min(benefit.flat, input.amount) : Math.floor(baseAmount * (rate || 0));
+  let value = hasRateComponents ? rawBenefitValue(benefit, input.amount) : benefit.flat ? Math.min(benefit.flat, input.amount) : Math.floor(baseAmount * (rate || 0));
   if (txnCap) value = Math.min(value, txnCap);
   if (monthlyCap) value = Math.min(value, monthlyCap);
   if (dailyCap) value = Math.min(value, dailyCap);
-  if (benefit.group) {
+  if (benefit.group && !hasRateComponents) {
     const tiers = card.groups[benefit.group];
     const groupCap = tierValue(tiers, calculationSpend);
     if (groupCap > 0 || !benefit.allowBelowGroup) value = Math.min(value, groupCap);
@@ -265,7 +316,7 @@ function calculate(input) {
   return cards.filter(card => isCardEnabled(card.id) && (automaticPayment || (input.payment === 'samsungmoney' ? card.id === 'samsungmoney' : card.id !== 'samsungmoney'))).map(card => {
     let items = card.benefits.map(benefit => assessBenefit(card, benefit, input)).filter(Boolean);
     const positive = items.filter(x => x.value > 0);
-    const replacements = new Set(items.filter(x => x.value > 0 || x.benefit.blocksFallback).map(x => x.benefit.replaces).filter(Boolean));
+    const replacements = new Set(items.filter(x => x.value > 0 || x.benefit.blocksFallback).flatMap(x => replacementIds(x.benefit)));
     items = items.filter(x => !replacements.has(x.benefit.id));
 
     // 카카오페이 카드는 국내 중복 혜택을 허용하지 않고, 교통·통신·영화가 우선.
@@ -287,7 +338,7 @@ function calculateMembershipCombinations(input, membership) {
       .filter(benefit => canStackMembership(membership, card, benefit))
       .map(benefit => assessBenefit(card, benefit, adjustedInput))
       .filter(Boolean);
-    const replacements = new Set(items.filter(item => item.value > 0 || item.benefit.blocksFallback).map(item => item.benefit.replaces).filter(Boolean));
+    const replacements = new Set(items.filter(item => item.value > 0 || item.benefit.blocksFallback).flatMap(item => replacementIds(item.benefit)));
     items = items.filter(item => !replacements.has(item.benefit.id));
     const value = items.reduce((sum, item) => sum + item.value, 0);
     return { card, value, items, eligible:items.filter(item => item.value > 0), membership, input:adjustedInput };
@@ -310,7 +361,7 @@ function shortSpend(amount) {
   return amount >= 10000 && amount % 10000 === 0 ? `${won.format(amount / 10000)}만원` : `${won.format(amount)}원`;
 }
 
-function paymentLabel(id) { return ({card:'일반 카드',kbpay:'KB Pay',kakaopay:'카카오페이',samsungmoney:'삼성월렛 머니',autopay:'자동이체'})[id] || id; }
+function paymentLabel(id) { return ({card:'일반 카드',kbpay:'KB Pay',kakaopay:'카카오페이',samsungmoney:'삼성월렛 머니',autopay:'자동이체','woori-point-pay':'네이버페이·카카오페이·PAYCO·SSGPAY'})[id] || id; }
 function channelForMerchant(merchantId) {
   if (merchantId === 'other-online') return 'online';
   if (merchantId === 'other-offline') return 'offline';
@@ -346,7 +397,7 @@ function amountConditionText(benefit) {
   if (benefit.rateTiers) {
     benefit.rateTiers.forEach(tier => {
       const range = tier.minAmount ? `${won.format(tier.minAmount)}원 이상` : `${won.format(tier.maxAmountExclusive)}원 미만`;
-      conditions.push(`${range} ${Math.round(tier.rate * 100)}%`);
+      conditions.push(`${range} ${percentLabel(tier.rate)}`);
     });
   } else if (benefit.minAmount) {
     conditions.push(`건당 ${won.format(benefit.minAmount)}원 이상`);
@@ -372,10 +423,11 @@ function shortAmountCondition(benefit, amount) {
 }
 
 function blockedCardAlternative(input, selectedCardId) {
+  const merchant = merchants.find(item => item.id === input.merchant);
   return cards.flatMap(card => {
     if (!isCardEnabled(card.id) || card.id === selectedCardId) return [];
     return card.benefits.flatMap(benefit => {
-      if (benefit.unsupported || benefit.requiresMilitary || !benefit.merchants.includes(input.merchant) || (benefit.channel && benefit.channel !== input.channel)) return [];
+      if (benefit.unsupported || benefit.requiresMilitary || !merchant || !visibleBenefitMatch(benefit, merchant) || (benefit.channel && benefit.channel !== input.channel)) return [];
       const nextTier = benefit.rateTiers?.map(tier => tier.minAmount || 0).filter(value => value > input.amount).sort((a,b) => a - b)[0];
       const minimum = benefit.minAmount > input.amount ? benefit.minAmount : nextTier;
       const spend = state.spends[card.id] || 0;
@@ -391,8 +443,9 @@ function blockedCardAlternative(input, selectedCardId) {
 }
 
 function specificCardResults(input) {
+  const merchant = merchants.find(entry => entry.id === input.merchant);
   return calculate(input).map(result => {
-    const items = result.items.filter(item => item.benefit.merchants.includes(input.merchant));
+    const items = result.items.filter(item => merchant && visibleBenefitMatch(item.benefit, merchant));
     return { ...result, items, eligible:items.filter(item => item.value > 0), value:items.reduce((sum, item) => sum + item.value, 0) };
   }).filter(result => result.items.length).sort((a,b) => b.value - a.value || a.card.name.localeCompare(b.card.name, 'ko'));
 }
@@ -404,7 +457,7 @@ function categorySampleAmount(category) {
 function categoryPotential(merchant, category) {
   const sampleInput = { merchant:merchant.id, amount:categorySampleAmount(category), payment:'auto', channel:channelForMerchant(merchant.id), eventItem:false, membershipEligible:false };
   const cardPotentials = cards.flatMap(card => card.benefits
-    .filter(benefit => isCardEnabled(card.id) && !benefit.requiresMilitary && benefit.merchants.includes(merchant.id) && (!benefit.channel || benefit.channel === sampleInput.channel))
+    .filter(benefit => isCardEnabled(card.id) && !benefit.requiresMilitary && visibleBenefitMatch(benefit, merchant) && (!benefit.channel || benefit.channel === sampleInput.channel))
     .map(benefit => ({ card, benefit, value:nominalBenefitValue(benefit, sampleInput.amount) }))
   );
   const provider = currentMembershipProvider();
@@ -445,7 +498,7 @@ function renderAmountGuide(input) {
   const cardItems = cards.flatMap(card => {
     if (!isCardEnabled(card.id)) return [];
     return card.benefits
-      .filter(benefit => benefit.merchants.includes(input.merchant) && (!benefit.channel || benefit.channel === input.channel))
+      .filter(benefit => merchant && visibleBenefitMatch(benefit, merchant) && (!benefit.channel || benefit.channel === input.channel))
       .map(benefit => ({ card, benefit }));
   });
   const provider = currentMembershipProvider();
@@ -471,6 +524,7 @@ function strategyConditions(card, benefit, input, { includeSpend=true }={}) {
   if (benefit.excludesEvent) conditions.push('행사 메뉴 제외');
   if (benefit.weekday === 2) conditions.push('매주 화요일');
   if (benefit.requiresMilitary) conditions.push('군 급여이체');
+  if (activePromotion(benefit)?.tag) conditions.push(activePromotion(benefit).tag);
   if (benefit.conditionNote) conditions.push(benefit.conditionNote);
   return conditions;
 }
@@ -482,11 +536,10 @@ function strategyScore(benefit, input) {
 
 function merchantStrategies(input, merchant) {
   const merchantInput = { ...input, merchant:merchant.id, channel:channelForMerchant(merchant.id) };
-  const genericMerchant = ['other-offline','other-online'].includes(merchant.id);
-  const cardStrategies = cards.flatMap(card => card.benefits
-    .filter(benefit =>
+  const cardStrategies = cards.flatMap(card => {
+    const strategies = card.benefits.filter(benefit =>
       isCardEnabled(card.id) &&
-      (genericMerchant ? benefit.merchants.includes('*') : benefit.merchants.includes(merchant.id)) &&
+      visibleBenefitMatch(benefit, merchant) &&
       (!benefit.channel || benefit.channel === merchantInput.channel)
     )
     .map(benefit => {
@@ -496,8 +549,11 @@ function merchantStrategies(input, merchant) {
       const personalMet = !benefit.requiresMilitary;
       const active = performanceMet && personalMet;
       return { key:`card:${card.id}:${benefit.id}`, merchant, card, benefit, assessment, active, value:assessment?.value || 0, score:strategyScore(benefit, merchantInput), conditions:strategyConditions(card, benefit, merchantInput), scenarioLabel:benefit.scopeLabel ? `${benefit.scopeLabel}인 경우` : '' };
-    })
-  );
+    });
+    if (!merchantInput.amount) return strategies;
+    const replacements = new Set(strategies.filter(strategy => strategy.assessment?.value > 0 || strategy.benefit.blocksFallback).flatMap(strategy => replacementIds(strategy.benefit)));
+    return strategies.filter(strategy => !replacements.has(strategy.benefit.id));
+  });
   const provider = currentMembershipProvider();
   const membershipStrategies = activeMembershipBenefits().filter(benefit => benefit.merchants.includes(merchant.id)).map(benefit => {
     const strategyInput = { ...merchantInput, eventItem:false, membershipEligible:!!benefit.requiresMembershipEligible };
@@ -651,17 +707,32 @@ function renderResults(input) {
   updateFavoriteToggle();
 }
 
+function renderGroupLimitTable(card, groupId, tiers) {
+  const extraColumns = card.groupCapColumns?.[groupId] || [];
+  const columns = [
+    { label:card.groupLabels?.[groupId] || '월 통합 한도', tiers },
+    ...extraColumns
+  ];
+  const thresholds = [...new Set(columns.flatMap(column => column.tiers.map(([spend]) => spend)))].sort((a, b) => a - b);
+  const tableClass = extraColumns.length ? 'tier-table tier-table-wide' : 'tier-table';
+  return `<div class="tier-table-wrap"><table class="${tableClass}"><thead><tr><th>전월 실적</th>${columns.map(column => `<th>${escapeHtml(column.label)}</th>`).join('')}</tr></thead><tbody>${thresholds.map(spend => `<tr><td>${won.format(spend)}원 이상</td>${columns.map(column => `<td>${won.format(tierValue(column.tiers, spend))}원</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
 function openCardDetail(cardId) {
   const card = cards.find(item => item.id === cardId);
   if (!card) return;
   document.querySelector('#cardDetailTitle').textContent = card.name;
-  document.querySelector('#cardDetailMeta').textContent = `${card.issuer} · ${card.kind}`;
+  const rewardKindLabel = card.rewardMedium ? `${card.kind}(${card.rewardMedium})` : card.kind;
+  document.querySelector('#cardDetailMeta').textContent = [card.issuer, rewardKindLabel]
+    .filter(Boolean)
+    .join(' · ');
 
   const groupEntries = Object.entries(card.groups || {});
-  const groupHtml = groupEntries.length ? `<section class="rule-section"><h3>통합 한도</h3>${groupEntries.map(([groupId, tiers]) => `${card.groupLabels?.[groupId] ? `<h4>${escapeHtml(card.groupLabels[groupId])}</h4>` : ''}<table class="tier-table"><thead><tr><th>전월 실적</th><th>월 통합 한도</th></tr></thead><tbody>${tiers.map(([spend, cap]) => `<tr><td>${won.format(spend)}원 이상</td><td>${won.format(cap)}원</td></tr>`).join('')}</tbody></table>`).join('')}</section>` : '';
+  const groupHtml = groupEntries.length ? `<section class="rule-section"><h3>월 한도</h3>${groupEntries.map(([groupId, tiers]) => renderGroupLimitTable(card, groupId, tiers)).join('')}</section>` : '';
   const detailBenefits = card.benefits.filter(benefit => !benefit.hideInDetail);
   const benefitsHtml = detailBenefits.map(benefit => {
-    const tags = benefit.detailTags || describeBenefit(benefit, card);
+    const rawTags = benefit.detailTags || describeBenefit(benefit, card);
+    const tags = card.groupCapColumns ? rawTags.filter(tag => !tag.includes('통합 월 한도')) : rawTags;
     const rewardName = benefit.reward === 'point' ? '적립' : benefit.benefitType;
     const rewardBadge = rewardName ? `<span class="reward-badge">${escapeHtml(rewardName)}</span>` : '';
     return `<article class="benefit-rule"><div class="benefit-rule-head"><h4>${escapeHtml(benefit.detailTitle || benefitDisplayTitle(benefit))}</h4>${rewardBadge}</div><div class="rule-tags">${tags.map(tag => `<span${tag === '전월 실적 조건 없음' ? ' class="no-performance-condition"' : ''}>${escapeHtml(tag)}</span>`).join('')}</div></article>`;
@@ -672,7 +743,9 @@ function openCardDetail(cardId) {
   const referenceUrl = gorillaUrl || cardReferenceUrls[card.id];
   const referenceLabel = gorillaUrl ? '카드고릴라에서 대조하기' : 'Samsung Members 혜택 안내';
   const referenceLink = referenceUrl ? `<a class="source-link secondary" href="${referenceUrl}" target="_blank" rel="noreferrer">${referenceLabel} <span aria-hidden="true">↗</span></a>` : '';
-  document.querySelector('#cardDetailContent').innerHTML = `<div class="verification-note">카드사 상품 안내를 바탕으로 정리한 주요 혜택과 적용 조건입니다. 실제 적용은 카드사의 가맹점 분류와 세부 약관에 따릅니다.</div>${groupHtml}<section class="rule-section"><h3>정리된 혜택 ${detailBenefits.length}개</h3><div class="benefit-rule-list">${benefitsHtml}</div></section>${note}<section class="rule-section"><h3>정보 출처</h3><p>${escapeHtml(card.source)}</p><div class="source-links"><a class="source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">공식 안내 열기 <span aria-hidden="true">↗</span></a>${referenceLink}</div></section>`;
+  const additionalSources = typeof cardAdditionalSourceUrls === 'undefined' ? [] : cardAdditionalSourceUrls[card.id] || [];
+  const additionalLinks = additionalSources.map(source => `<a class="source-link secondary" href="${source.url}" target="_blank" rel="noreferrer">${escapeHtml(source.label)} <span aria-hidden="true">↗</span></a>`).join('');
+  document.querySelector('#cardDetailContent').innerHTML = `<div class="verification-note">카드사 상품 안내를 바탕으로 정리한 주요 혜택과 적용 조건입니다. 실제 적용은 카드사의 가맹점 분류와 세부 약관에 따릅니다.</div>${groupHtml}<section class="rule-section"><h3>정리된 혜택 ${detailBenefits.length}개</h3><div class="benefit-rule-list">${benefitsHtml}</div></section>${note}<section class="rule-section"><h3>정보 출처</h3><p>${escapeHtml(card.source)}</p><div class="source-links"><a class="source-link" href="${sourceUrl}" target="_blank" rel="noreferrer">공식 안내 열기 <span aria-hidden="true">↗</span></a>${referenceLink}${additionalLinks}</div></section>`;
   document.querySelector('#cardDialog').showModal();
   document.querySelector('#cardDialog .dialog-card').scrollTop = 0;
 }
@@ -720,29 +793,36 @@ function openMembershipDetail() {
 
 function describeBenefit(benefit, card) {
   const tags = [];
+  const txnCap = benefitLimit(benefit, null, 'txnCap');
+  const txnAmountCap = benefitLimit(benefit, null, 'txnAmountCap');
+  const dailyCap = benefitLimit(benefit, null, 'dailyCap');
+  const monthlyCap = benefitLimit(benefit, null, 'monthlyCap');
+  const additionalMonthlyCap = benefitLimit(benefit, null, 'additionalMonthlyCap');
   if (benefit.minSpend) tags.push(`전월 실적 ${won.format(benefit.minSpend)}원 이상`); else tags.push('전월 실적 조건 없음');
   if (benefit.rateTiers) {
     const rangeLabel = tier => tier.minAmount ? `${won.format(tier.minAmount)}원 이상` : `${won.format(tier.maxAmountExclusive)}원 미만`;
     benefit.rateTiers.forEach(tier => {
       const limits = [tier.dailyCap && `일 한도 ${won.format(tier.dailyCap)}원`, tier.monthlyCap && `월 한도 ${won.format(tier.monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`].filter(Boolean);
-      tags.push(`결제금액 ${rangeLabel(tier)} · ${tier.rate * 100}%${limits.length ? ` · ${limits.join(' · ')}` : ''}`);
+      tags.push(`결제금액 ${rangeLabel(tier)} · ${percentLabel(tier.rate)}${limits.length ? ` · ${limits.join(' · ')}` : ''}`);
     });
   }
   if (benefit.minAmount) tags.push(`건당 이용금액 ${won.format(benefit.minAmount)}원 이상`);
   else if (benefit.maxAmountExclusive) tags.push(`건당 이용금액 ${won.format(benefit.maxAmountExclusive)}원 미만`);
   else tags.push('건당 이용 조건 없음');
-  if (benefit.txnCap) tags.push(`건당 한도 ${won.format(benefit.txnCap)}원`);
-  if (benefit.txnAmountCap) tags.push(`혜택 계산 대상 결제금액 최대 ${won.format(benefit.txnAmountCap)}원`);
-  if (!benefit.rateTiers && benefit.dailyCap) tags.push(`일 한도 ${won.format(benefit.dailyCap)}원`);
+  if (txnCap) tags.push(`건당 한도 ${won.format(txnCap)}원`);
+  if (txnAmountCap) tags.push(`혜택 계산 대상 결제금액 최대 ${won.format(txnAmountCap)}원`);
+  if (!benefit.rateTiers && dailyCap) tags.push(`일 한도 ${won.format(dailyCap)}원`);
   if (benefit.dailyCount) tags.push(`일 ${benefit.dailyCount}회`);
-  const monthlyCapIsDerivedFromCount = benefit.flat && benefit.monthlyCount && benefit.monthlyCap === benefit.flat * benefit.monthlyCount;
+  const monthlyCapIsDerivedFromCount = benefit.flat && benefit.monthlyCount && monthlyCap === benefit.flat * benefit.monthlyCount;
   if (benefit.monthlyCount) {
     const fixedAmountLabel = benefit.flat ? ` (${won.format(benefit.flat * benefit.monthlyCount)}원)` : '';
     tags.push(`월 ${benefit.monthlyCount}회${fixedAmountLabel}${benefit.group ? ' (통합한도 적용)' : ''}`);
-    if (benefit.monthlyCap && !monthlyCapIsDerivedFromCount) tags.push(`월 한도 ${won.format(benefit.monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`);
-  } else if (benefit.monthlyCap) tags.push(`월 한도 ${won.format(benefit.monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`);
+    if (monthlyCap && !monthlyCapIsDerivedFromCount) tags.push(`월 한도 ${won.format(monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`);
+  } else if (monthlyCap) tags.push(`월 한도 ${won.format(monthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`);
+  else if (additionalMonthlyCap) { /* 아래에서 추가 적립 한도로 구분해 표시 */ }
   else if (benefit.group) tags.push('월 한도 통합한도 적용');
   else tags.push('월 한도 없음 (통합한도 미적용)');
+  if (additionalMonthlyCap) tags.push(`추가 적립 월 한도 ${won.format(additionalMonthlyCap)}원 (${benefit.group ? '통합한도 적용' : '통합한도 미적용'})`);
   if (benefit.annualCount) tags.push(`연 ${benefit.annualCount}회`);
   if (benefit.specialCount) tags.push(`월 ${benefit.specialCount.join('·')}번째 결제`);
   if (benefit.rateSchedule?.type === 'weekday') tags.push('결제일 기준 평일·주말 적용');
@@ -752,6 +832,8 @@ function describeBenefit(benefit, card) {
   if (benefit.domesticOnly) tags.push('국내 이용만 적용');
   if (benefit.requiresEvent) tags.push('행사 대상 품목만 적용');
   if (benefit.requiresMilitary) tags.push('군 급여이체 조건 필요');
+  if (activePromotion(benefit)?.tag) tags.push(activePromotion(benefit).tag);
+  else if (benefit.promotion?.through) tags.push(`${benefit.promotion.through.replaceAll('-', '.')} 프로모션 종료 · 현재 기본 적립률 적용`);
   if (benefit.conditionNote) tags.push(benefit.conditionNote);
   if (benefit.unlimited) tags.push(`기본 ${benefit.reward === 'point' ? '적립' : '캐시백'} 한도 없음`);
   if (benefit.replaces) tags.push('상위 적립률 적용 시 기본 적립 대체');

@@ -257,6 +257,9 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .tier-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .tier-table th, .tier-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; }
 .tier-table th { color: var(--ink-soft); font-size: .78rem; }
+.tier-table-wrap { max-width: 100%; overflow-x: auto; }
+.tier-table-wide { min-width: 570px; }
+.tier-table-wide th, .tier-table-wide td { white-space: nowrap; }
 .source-link { display: inline-flex; align-items: center; gap: 6px; color: var(--blue); font-weight: 800; text-decoration: none; }
 .source-link:hover { text-decoration: underline; }
 .source-links { display: flex; flex-wrap: wrap; gap: 10px 18px; }

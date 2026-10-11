@@ -1,5 +1,7 @@
 // 카드 혜택 데이터
 // 날짜별 변동 규칙은 함수가 아니라 rateSchedule 같은 선언형 값으로 기록합니다.
+// 상세 표시 원칙: 지정 브랜드 혜택은 브랜드를 모두 나열합니다. 일반 업종만으로 구성된 혜택은
+// 같은 공식 영역·혜택률·이용 조건일 때 합치고, 계산 조건이 다른 항목은 숨김 계산 항목으로 분리합니다.
 
 function defaultBenefitType(id) {
   if (id.startsWith('nori-') || id.startsWith('hana-') || id.startsWith('kbank-') || id.startsWith('simple-')) return '캐시백';
@@ -10,7 +12,7 @@ function b(id, merchants, label, options={}) { return { id, merchants, label, re
 
 const cards = [
   {
-    id: 'nori', issuer: 'KB국민카드', name: '노리2 체크카드(KB Pay)', kind: '캐시백형',
+    id: 'nori', issuer: 'KB국민카드', name: '노리2 체크카드(KB Pay)', kind: '캐시백형', rewardMedium: '결제계좌',
     source: '카드고릴라 2422 · KB국민카드 공식 안내',
     groups: { nori: [[200000, 20000], [400000, 30000], [600000, 40000], [800000, 50000]] },
     benefits: [
@@ -29,7 +31,124 @@ const cards = [
     ]
   },
   {
-    id: 'soltravel', issuer: '신한카드', name: 'SOL트래블 체크', kind: '캐시백형', source: '카드고릴라 2667 · 신한카드 공식 안내', groups:{}, benefits:[
+    id: 'coupang-wow-card', issuer: 'KB국민카드', name: '쿠팡 와우 카드', kind: '적립형', rewardMedium: '쿠팡캐시',
+    source: 'KB국민카드 공식 안내 · 카드고릴라 2609 · 2026년 10월 프로모션', groups:{}, benefits:[
+      b('coupang-wow-core', ['coupang','coupangeats','coupangplay'], '쿠팡·쿠팡이츠·쿠팡플레이 2%', {
+        rate:.02, reward:'point', monthlyCap:20000,
+        promotion:{ through:'2026-10-31', rate:.04, monthlyCap:40000, tag:'2026년 10월 31일까지 기본 2% + 추가 2%' },
+        displayMerchants:['쿠팡','쿠팡이츠','쿠팡플레이'],
+        conditionNote:'쿠팡플레이는 플레이스토어·앱스토어 결제 제외'
+      }),
+      b('coupang-wow-convenience', ['cu','gs25','seveneleven','emart24'], 'CU·GS25·세븐일레븐·이마트24 0.2%', {
+        rate:.002, reward:'point', monthlyCap:2000, channel:'offline', replaces:'coupang-wow-general',
+        promotion:{ through:'2026-10-31', rate:.024, monthlyCap:24000, tag:'2026년 10월 31일까지 기본 0.2% + 추가 2.2%' },
+        conditionNote:'오프라인 매장만 · 카드 직접 결제·KB Pay·삼성페이 적용 · 다른 간편결제와 편의점 택배·앱 결제 제외 · 편의점·그 외 가맹점 프로모션 합산 월 이용금액 1,000,000원까지'
+      }),
+      b('coupang-wow-general', ['*'], '쿠팡 외 국내·외 가맹점 0.2%', {
+        rate:.002, reward:'point', monthlyCap:2000, fallback:true,
+        excludesMerchants:['coupang','coupangeats','coupangplay'],
+        promotion:{ through:'2026-10-31', rate:.012, monthlyCap:12000, tag:'2026년 10월 31일까지 기본 0.2% + 추가 1%' },
+        displayMerchants:['쿠팡 외 국내·외 가맹점'],
+        conditionNote:'편의점·그 외 가맹점 프로모션 합산 월 이용금액 1,000,000원까지'
+      })
+    ], note:'카드 발급에는 쿠팡 와우 멤버십 가입이 필요합니다. 기간 한정 프로모션은 종료일 이후 기본 적립률로 자동 계산됩니다.'
+  },
+  {
+    id: 'gaon-biz', issuer: 'KB국민카드', name: '가온 Biz카드', kind: '적립형', rewardMedium: '포인트리',
+    source: 'KB국민카드 공식 안내 · 카드고릴라 1294',
+    groups:{ gaonExtra:[[500000,50000]] }, groupLabels:{ gaonExtra:'사업지원영역·고액결제 통합 적립 한도' }, benefits:[
+      b('gaon-domestic', ['*'], '국내 가맹점 0.3%', {
+        rate:.003, reward:'point', minSpend:500000, minAmount:10000, unlimited:true, fallback:true, domesticOnly:true
+      }),
+      b('gaon-overseas', ['overseas'], '해외 이용금액 2%', {
+        rate:.02, reward:'point', minSpend:500000, minAmount:10000, monthlyCap:10000,
+        conditionNote:'해외직구 포함 · 해외 이용은 추가적립 미적용'
+      }),
+      b('gaon-business', ['gs-caltex','skenergy','s-oil','hyundaioilbank','gas','skt','kt','lgu','liivm','mvno','other-online'], '주유·통신·전자상거래 0.9%', {
+        rate:.009, baseRate:.003, additionalRate:.006, additionalMonthlyCap:50000,
+        reward:'point', minSpend:500000, minAmount:10000, group:'gaonExtra',
+        merchantCategories:['온라인쇼핑'], replaces:'gaon-domestic',
+        displayMerchants:['주유','통신','전자상거래'],
+        conditionNote:'기본 0.3% + 사업지원영역 추가 0.6% · KB국민카드 업종 분류 기준'
+      }),
+      b('gaon-large', ['*'], '국내 고액결제 0.9~1.3%', {
+        reward:'point', minSpend:500000, additionalMonthlyCap:50000, group:'gaonExtra', domesticOnly:true, showAtSpecific:true,
+        rateTiers:[
+          { id:'500k-to-1m', minAmount:500000, maxAmountExclusive:1000000, rate:.009, baseRate:.003, additionalRate:.006 },
+          { id:'1m-or-more', minAmount:1000000, rate:.013, baseRate:.003, additionalRate:.01 }
+        ],
+        replaces:['gaon-domestic','gaon-business'],
+        displayMerchants:['국내 고액결제'],
+        conditionNote:'기본 0.3% 포함 최종 적립률 · 사업지원영역 추가적립과 중복되지 않고 고액결제 적립 우선'
+      }),
+      b('gaon-mybiz', [], '마이비즈 사업지원 서비스', {
+        reward:'point', benefitType:null, unsupported:true,
+        detailTitle:'마이비즈 · 사업지원 서비스',
+        detailTags:['전자세금계산서 무료 발행','카드 이용내역의 과세정보·부가가치세액 자동 분류','부가세 신고용 전자파일 생성 지원','최종 세금신고와 환급 검토 책임은 본인에게 있음']
+      })
+    ], note:'사업지원영역 추가적립을 받은 이용금액은 다음 달 전월 실적에서 제외됩니다. 최초 사용등록일부터 다음 달 말일까지는 전월 실적이 없어도 기본 적립이 제공됩니다.'
+  },
+  {
+    id: 'woori-point', issuer: '우리카드', name: '카드의정석 POINT', kind: '적립형', rewardMedium: '모아포인트', source: '카드고릴라 84 · 우리카드 상품 안내',
+    groups:{ wooriPoint:[[300000,10000],[600000,20000],[1200000,50000]] }, groupLabels:{ wooriPoint:'특별·간편결제 추가 적립 통합 한도' }, benefits:[
+      b('woori-point-base', ['*'], '국내 가맹점 0.8%', { rate:.008, reward:'point', minAmount:10000, minSpend:300000, unlimited:true, fallback:true, domesticOnly:true, detailTitle:'국내 모든 가맹점 · 0.8%', detailTags:['전월 실적 300,000원 이상','건당 10,000원 이상','월 한도 없음 (통합한도 미적용)'] }),
+      b('woori-point-telecom5', ['skt','kt','lgu','cjhello','ktm','uplusmvno'], 'SKT·KT·LG U+·CJ헬로모바일·KT M모바일·U+알뜰모바일 5%', { rate:.05, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:['woori-point-base','woori-point-pay-base'], conditionNote:'휴대전화 요금만 적용 · 인터넷·유선전화 등 결합상품 제외' }),
+      b('woori-point-mobility5', ['transit','ev-ministry','ev-happy','ev-kepco','ev-chargingmate'], '대중교통·전기차 충전 5%', { rate:.05, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:['woori-point-base','woori-point-pay-base'], displayMerchants:['버스·지하철','환경부·한국전기차충전·한국전력·KT 차징메이트'] }),
+      b('woori-point-cafe3', ['starbucks','angelinus','ediya'], '스타벅스·엔제리너스·이디야 3%', { rate:.03, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:'woori-point-base', conditionNote:'상품권·선불카드 구입·충전 및 백화점·대형마트 입점 매장 제외' }),
+      b('woori-point-movie3', ['cgv','lottecinema'], 'CGV·롯데시네마 3%', { rate:.03, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:'woori-point-base', conditionNote:'예매 대행사이트 결제 제외' }),
+      b('woori-point-department1', ['shinsegae-department','hyundai-department','lotte-department'], '신세계·현대·롯데백화점 1%', { rate:.01, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:'woori-point-base', conditionNote:'온라인 결제 제외' }),
+      b('woori-point-mart1', ['emart','homeplus','lottemart','vicmarket','traders'], '이마트·홈플러스·롯데마트·VIC마켓·트레이더스 1%', { rate:.01, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:'woori-point-base', conditionNote:'온라인 결제 제외' }),
+      b('woori-point-online1', ['11st','gmarket','auction','lotteon','coupang','tmon','wemakeprice'], '11번가·G마켓·옥션·롯데ON·쿠팡·티몬·위메프 1%', { rate:.01, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:'woori-point-base', channel:'online' }),
+      b('woori-point-gas1', ['gs-caltex','skenergy','s-oil','hyundaioilbank'], 'SK에너지·GS칼텍스·S-OIL·현대오일뱅크 1%', { rate:.01, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:'woori-point-base', conditionNote:'LPG 충전 제외' }),
+      b('woori-point-overseas1', ['overseas','overseas-transit'], '해외 가맹점 1%', { rate:.01, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', replaces:'woori-point-base', displayMerchants:['해외 가맹점'] }),
+      b('woori-point-pay-base', ['*'], '간편결제 이용 시 총 3.8%', { rate:.038, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', payment:'woori-point-pay', domesticOnly:true, replaces:'woori-point-base', hideInDetail:true }),
+      b('woori-point-pay-cafe3', ['starbucks','angelinus','ediya'], '간편결제 이용 시 총 6%', { rate:.06, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', payment:'woori-point-pay', replaces:['woori-point-base','woori-point-pay-base','woori-point-cafe3'], hideInDetail:true }),
+      b('woori-point-pay-movie3', ['cgv','lottecinema'], '간편결제 이용 시 총 6%', { rate:.06, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', payment:'woori-point-pay', replaces:['woori-point-base','woori-point-pay-base','woori-point-movie3'], hideInDetail:true }),
+      b('woori-point-pay-department1', ['shinsegae-department','hyundai-department','lotte-department'], '간편결제 이용 시 총 4%', { rate:.04, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', payment:'woori-point-pay', replaces:['woori-point-base','woori-point-pay-base','woori-point-department1'], hideInDetail:true }),
+      b('woori-point-pay-mart1', ['emart','homeplus','lottemart','vicmarket','traders'], '간편결제 이용 시 총 4%', { rate:.04, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', payment:'woori-point-pay', replaces:['woori-point-base','woori-point-pay-base','woori-point-mart1'], hideInDetail:true }),
+      b('woori-point-pay-online1', ['11st','gmarket','auction','lotteon','coupang','tmon','wemakeprice'], '간편결제 이용 시 총 4%', { rate:.04, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', payment:'woori-point-pay', channel:'online', replaces:['woori-point-base','woori-point-pay-base','woori-point-online1'], hideInDetail:true }),
+      b('woori-point-pay-gas1', ['gs-caltex','skenergy','s-oil','hyundaioilbank'], '간편결제 이용 시 총 4%', { rate:.04, reward:'point', minAmount:10000, minSpend:300000, group:'wooriPoint', payment:'woori-point-pay', replaces:['woori-point-base','woori-point-pay-base','woori-point-gas1'], hideInDetail:true }),
+      b('woori-point-pay-info', [], '주요 간편결제 3% 추가', { reward:'point', unsupported:true, detailTitle:'네이버페이·카카오페이·PAYCO·SSGPAY · 3% 추가', detailTags:['전월 실적 300,000원 이상','건당 10,000원 이상','카드 등록 후 온라인·오프라인 간편결제 시 적용','기본·특별 적립률에 3% 추가','특별·추가 적립 통합 월 한도 적용'] })
+    ], note:'모든 적립은 건당 10,000원 이상 결제부터 적용됩니다. 기본 0.8%는 한도 없이 적립되고, 특별 적립과 간편결제 추가 적립은 전월 30만원·60만원·120만원 구간에 따라 월 1만·2만·5만점 통합한도가 적용됩니다.'
+  },
+  {
+    id: 'amex-platinum', issuer: '현대카드', name: 'American Express The Platinum Card®', kind: '적립형', rewardMedium: '멤버십 리워즈(MR)', source: '카드고릴라 2280 · 현대카드 공식 상품 안내', groups:{}, benefits:[
+      b('amex-platinum-base', ['*'], '국내외 가맹점 1,000원당 1.5MR', { rate:.015, reward:'point', unlimited:true, fallback:true, valueLabel:'1,000원당 1.5MR', conditionNote:'추천 금액은 1MR≈10원으로 환산', detailTitle:'국내외 모든 가맹점 · 1,000원당 1.5MR', detailTags:['전월 실적 조건 없음','건당 이용 조건 없음','적립 한도 없음','결제일 또는 이용대금 입금 완료 후 2~10일 이내 적립'] }),
+      b('amex-platinum-2x', ['overseas','overseas-transit','luxury-hotel'], '해외 가맹점·국내 특급호텔 1,000원당 3MR', { rate:.03, reward:'point', minSpend:500000, unlimited:true, replaces:'amex-platinum-base', valueLabel:'1,000원당 3MR', conditionNote:'추천 금액은 1MR≈10원으로 환산', detailTitle:'해외 가맹점·국내 특급호텔 · 1,000원당 3MR', detailTags:['전월 실적 500,000원 이상','건당 이용 조건 없음','적립 한도 없음','전월 실적 미충족 시 기본 1.5MR 적용','해외 원화결제는 특별 적립 제외'] }),
+      b('amex-platinum-3x', ['golf','dutyfree'], '골프·골프연습장·면세점 1,000원당 4.5MR', { rate:.045, reward:'point', minSpend:500000, unlimited:true, replaces:'amex-platinum-base', valueLabel:'1,000원당 4.5MR', conditionNote:'추천 금액은 1MR≈10원으로 환산', detailTitle:'골프·골프연습장·면세점 · 1,000원당 4.5MR', detailTags:['전월 실적 500,000원 이상','건당 이용 조건 없음','적립 한도 없음','전월 실적 미충족 시 기본 1.5MR 적용'] }),
+      b('amex-platinum-annual', [], '연간 100,000MR 스페셜 적립', { reward:'point', unsupported:true, detailTitle:'연간 스페셜 적립 · 100,000MR', detailTags:['1차년도: 연간 이용금액 1,000,000원 이상','2차년도부터: 전년도 이용금액 36,000,000원 이상','연회비 납부 완료 및 정상 카드 보유 필요','기준 달성 다음 달 적립'] }),
+      b('amex-platinum-airport', [], '공항 라운지·공항 편의 서비스', { unsupported:true, benefitType:null, detailTitle:'공항 서비스 · 라운지·발레파킹·리무진·공항철도', detailTags:['공항 라운지 일 1회 · 연 10회','공항·호텔 발레파킹 통합 월 5회','리무진·공항철도 일 1회 · 연 12회','무료 커피 월 1회 · 연 12회','Books Store 할인 일 1회 · 연 12회','선택 서비스는 전월 실적 500,000원 이상'] }),
+      b('amex-platinum-global-lounge', [], 'Global Lounge Collection', { unsupported:true, benefitType:null, detailTitle:'Global Lounge Collection · 무료 입장', detailTags:['The Centurion® Lounge','International American Express Lounge','Delta Sky Club® Lounge','실물 카드·여권·당일 탑승권 제시','세부 이용 조건은 Amex 공식 안내 확인'] }),
+      b('amex-platinum-hotel', [], '호텔·레스토랑 프리미엄 서비스', { unsupported:true, benefitType:null, detailTitle:'호텔·레스토랑 · 프리미엄 서비스', detailTags:['Fine Hotels + Resorts™','The Hotel Collection','호텔 멤버십 골드 등급','Be My Guest 월 1회 · 연 3회','Be My Guest는 전월 실적 500,000원 이상'] }),
+      b('amex-platinum-metal', [], '메탈 플레이트', { unsupported:true, benefitType:null, detailTitle:'메탈 플레이트 · 기본 제공', detailTags:['본인 회원에게 메탈 플레이트 제공','재발급·가족카드 메탈 플레이트는 별도 수수료 확인 필요'] })
+    ], note:'추천 금액은 카드 안내의 100,000MR=약 1,000,000원 기준으로 1MR을 약 10원으로 환산한 비교값입니다. 실제 가치는 항공사 마일리지·호텔 포인트 등 사용처와 전환 비율에 따라 달라집니다.'
+  },
+  {
+    id: 'samsung-happiness-v2', issuer: '삼성카드', name: '국민행복 삼성카드 V2', kind: '할인형', rewardMedium: '결제일 할인', source: '카드고릴라 718 · 삼성카드 공식 안내',
+    groups:{ samsungHappy:[[300000,10000],[600000,20000],[1000000,40000]] }, groupLabels:{ samsungHappy:'전체 통합 한도' }, groupCapColumns:{ samsungHappy:[
+      { label:'쇼핑', tiers:[[300000,4000],[600000,8000],[1000000,16000]] },
+      { label:'보육', tiers:[[300000,4000],[600000,8000],[1000000,16000]] },
+      { label:'생활요금', tiers:[[300000,4000],[600000,8000],[1000000,16000]] }
+    ] }, benefits:[
+      b('samsung-happy-department', ['shinsegae-department','lotte-department','hyundai-department','galleria-department','donga-department','daegu-department','akplaza','nc-yuseong','shinsegae-outlet','hyundai-outlet'], '신세계·롯데·현대·갤러리아·동아·대구·AK플라자·NC 유성점·신세계사이먼·현대프리미엄아울렛 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', displayMerchants:['신세계백화점','롯데백화점','현대백화점','갤러리아백화점','동아백화점','대구백화점','AK플라자','NC백화점 유성점','신세계사이먼 프리미엄 아울렛','현대프리미엄아울렛'], channel:'offline', conditionNote:'오프라인 일반 결제만 적용', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','쇼핑 혜택 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','오프라인 일반 결제만 적용'] }),
+      b('samsung-happy-mart', ['emart','traders','lottemart','homeplus'], '이마트·트레이더스·롯데마트·홈플러스 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', detailTitle:'이마트·트레이더스·롯데마트·홈플러스 · 7%', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','쇼핑 혜택 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원'] }),
+      b('samsung-happy-online', ['samsungcard-shopping','gmarket','auction','11st','interpark-shopping','coupang','tmon','wemakeprice','ssg','lotteon'], '삼성카드 쇼핑·G마켓·옥션·11번가·인터파크·쿠팡·티몬·위메프·SSG.COM·롯데ON 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', channel:'online', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','쇼핑 혜택 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원'] }),
+      b('samsung-happy-daiso', ['daiso'], '다이소 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', channel:'offline', conditionNote:'오프라인 일반 결제만 적용', detailTitle:'다이소 · 7%', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','쇼핑 혜택 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','오프라인 일반 결제만 적용'] }),
+      b('samsung-happy-fresh', ['marketkurly','oasis'], '마켓컬리·오아시스마켓 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', channel:'online', conditionNote:'공식 앱·홈페이지 결제만 적용', detailTitle:'마켓컬리·오아시스마켓 · 7%', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','쇼핑 혜택 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','공식 앱·홈페이지 결제만 적용'] }),
+      b('samsung-happy-care', ['hospital','pharmacy','postpartum-care','academy','workbook','daycare','kindergarten'], '병·의원·약국·산후조리원·학원·학습지·어린이집·유치원 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', conditionNote:'병·의원·약국·산후조리원·학원은 오프라인 일반 결제만 · 어린이집·유치원 정부지원금 이용금액 제외', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','의료·교육·보육·주유 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','병·의원·약국·산후조리원·학원은 오프라인 일반 결제만','어린이집·유치원 정부지원금 이용금액 제외'] }),
+      b('samsung-happy-book', ['yes24','interpark-books','aladin','kyobo'], 'YES24·인터파크 도서·알라딘·교보문고 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', channel:'online', conditionNote:'공식 앱·홈페이지 결제만 적용', detailTitle:'YES24·인터파크 도서·알라딘·교보문고 · 7%', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','의료·교육·보육·주유 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','공식 앱·홈페이지 결제만 적용'] }),
+      b('samsung-happy-gas', ['skenergy','gs-caltex','s-oil'], 'SK에너지·GS칼텍스·S-OIL 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', conditionNote:'LPG 충전 제외', detailTitle:'SK에너지·GS칼텍스·S-OIL · 7%', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','의료·교육·보육·주유 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','LPG 충전 제외'] }),
+      b('samsung-happy-living', ['apartment-fee','city-gas','electricity','social-insurance','coway','skmagic'], '아파트 관리비·도시가스·전기요금·4대 사회보험·보험료·코웨이·SK매직 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', payment:'autopay', conditionNote:'관리비·공과금·4대 사회보험·렌탈은 자동납부 연결 건만 · 보험료는 일반 납부와 자동납부 모두 적용', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','생활요금·보험 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','관리비·공과금·4대 사회보험·렌탈은 자동납부 연결 건만','보험료는 일반 납부와 자동납부 모두 적용'] }),
+      b('samsung-happy-telecom', ['skt','skb','kt','lgu'], 'SKT·SK브로드밴드·KT·LG U+ 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', payment:'autopay', conditionNote:'자동납부 연결 건만 적용', detailTitle:'SKT·SK브로드밴드·KT·LG U+ · 7%', detailTags:['전월 실적 300,000원 이상','건당 이용 조건 없음','생활요금·보험 통합 월 한도 4,000~16,000원','7% 할인 서비스 통합 월 한도 10,000~40,000원','자동납부 연결 건만 적용'] }),
+      b('samsung-happy-insurance', ['insurance'], '보험료 7%', { rate:.07, minSpend:300000, monthlyCapTiers:[[300000,4000],[600000,8000],[1000000,16000]], group:'samsungHappy', conditionNote:'일반 납부와 자동납부 모두 적용 · 카드 납부 가능 여부는 보험사별 확인', hideInDetail:true }),
+      b('samsung-happy-streaming', ['netflix','wavve','tving','watcha','melon','flo'], '넷플릭스·웨이브·티빙·왓챠·멜론·FLO 3,000원', { flat:3000, minAmount:5000, minSpend:300000, monthlyCap:3000, monthlyCount:1, payment:'autopay', conditionNote:'공식 홈페이지·앱 정기결제만 · 간편결제 및 앱스토어 인앱 결제 제외' }),
+      b('samsung-happy-overseas', ['overseas','overseas-transit'], '해외 가맹점·해외 직접구매 1.5%', { rate:.015, monthlyCap:500000, displayMerchants:['해외 가맹점','해외 직접구매'], conditionNote:'해외겸용 카드 이용 시 적용' }),
+      b('samsung-happy-voucher', [], '정부지원 국가바우처', { unsupported:true, benefitType:null, detailTitle:'정부지원 국가바우처 · 이용 가능', detailTags:['임신·출산 진료비','보육료·유아학비','첫만남 이용권 등','지원 대상·금액·사용처는 정부 정책과 바우처별 기준 적용'] }),
+      b('samsung-happy-shinsegae', [], '신세계백화점 제휴 서비스', { unsupported:true, benefitType:null, detailTitle:'신세계백화점 · 제휴 서비스', detailTags:['신세계백화점 할인쿠폰','신세계포인트 적립','세부 조건은 신세계백화점·신세계포인트 공식 안내 확인'] })
+    ], note:'7% 할인 서비스 적용 금액과 어린이집·유치원 이용금액 등은 전월 실적에서 제외됩니다. 국가바우처 이용과 카드 자체 할인은 별도 기준이므로 구분해 확인해야 합니다.'
+  },
+  {
+    id: 'soltravel', issuer: '신한카드', name: 'SOL트래블 체크', kind: '캐시백형', rewardMedium: '결제계좌', source: '카드고릴라 2667 · 신한카드 공식 안내', groups:{}, benefits:[
       b('sol-cu-event', ['cu'], 'CU 간편식·즉석원두커피 5% 할인', { rate:.05, txnCap:2000, requiresEvent:true, scopeLabel:'간편식·즉석원두커피', outsideScopeLabel:'그 외 CU 상품', channel:'offline', benefitType:'할인', membershipStacking:{ 'skt-cu':{ discount:'allowed' } }, detailTitle:'CU 간편식·즉석원두커피 · 5%', detailTags:['전월 실적 조건 없음','건당 이용 조건 없음','건당 한도 2,000원','월 한도 없음 (통합한도 미적용)','T멤버십 CU 할인과 중복 적용 가능'] }),
       b('sol-store', ['seveneleven','cu','gs25','emart24'], 'CU·GS25·세븐일레븐·이마트24 5%', { rate:.05, minSpend:300000, monthlyCap:3000, monthlyCount:3, dailyCount:1, benefitType:'캐시백' }),
       b('sol-transit', ['transit'], '시내버스·시외버스·지하철·공항버스·공항철도 1%', { rate:.01, minSpend:300000, monthlyCap:3000, benefitType:'캐시백', displayMerchants:['시내버스','시외버스','지하철','공항버스','공항철도'], conditionNote:'후불교통 터치(RF) 거래만 적용 · 고속버스 제외' }),
@@ -38,7 +157,7 @@ const cards = [
     ]
   },
   {
-    id: 'hana', issuer: '하나카드', name: '하나 나라사랑카드', kind: '캐시백형', source: '카드고릴라 2934 · 하나카드 상품설명서',
+    id: 'hana', issuer: '하나카드', name: '하나 나라사랑카드', kind: '캐시백형', rewardMedium: '결제계좌', source: '카드고릴라 2934 · 하나카드 상품설명서',
     groups:{ hana:[[100000,5000],[200000,10000],[300000,20000],[500000,30000],[1000000,50000]] },
     benefits:[
       b('hana-px', ['px'], '군마트(PX) 20~30% 캐시백', { rateTiers:[
@@ -64,7 +183,7 @@ const cards = [
     ]
   },
   {
-    id: 'deepdream', issuer: '신한카드', name: 'Deep Dream 체크', kind: '적립형', source: '카드고릴라 281 · 신한카드 공식 안내', membershipDiscountBlocked:true,
+    id: 'deepdream', issuer: '신한카드', name: 'Deep Dream 체크', kind: '적립형', rewardMedium: '마이신한포인트', source: '카드고릴라 281 · 신한카드 공식 안내', membershipDiscountBlocked:true,
     groups:{ dream:[[200000,5000],[400000,15000],[800000,30000]] }, groupLabels:{ dream:'더해드림·챙겨드림 통합 적립 한도' }, benefits:[
       b('dream-base', ['*'], '모두드림 0.2%', { rate:.002, reward:'point', unlimited:true, fallback:true }),
       b('dream-mart', ['emart','lottemart','homeplus','hanaro','traders','vicmarket'], '이마트·홈플러스·롯데마트·농협 하나로마트·클럽·이마트 트레이더스·롯데 VIC마켓 0.6%', { rate:.006, reward:'point', minSpend:200000, group:'dream', replaces:'dream-base', displayMerchants:['이마트','홈플러스','롯데마트','농협 하나로마트·클럽','이마트 트레이더스','롯데 VIC마켓'], conditionNote:'오프라인 쇼핑 결제만 적용 · SSM·온라인 매장 제외' }),
@@ -80,7 +199,7 @@ const cards = [
     ], note:'더해드림은 DREAM 영역 0.6%를 계산하고, 당월 최다 이용 영역의 추가 0.4%는 월말 확정 후 익월 15일 적립됩니다. 주유는 리터당 적립이라 실제 주유량·유가가 필요해 자동 금액 계산에서는 제외했습니다.'
   },
   {
-    id: 'kakaobank', issuer: '카카오뱅크', name: '프렌즈 체크카드', kind: '캐시백형', source: '카카오뱅크 공식 안내 · 캐시백 프로모션 2026 (2026.02.01~2027.01.31)', groups:{ kbankPromo:[[300000,1000]] }, groupLabels:{ kbankPromo:'GS25·커피 통합 한도' }, benefits:[
+    id: 'kakaobank', issuer: '카카오뱅크', name: '프렌즈 체크카드', kind: '캐시백형', rewardMedium: '결제계좌', source: '카카오뱅크 공식 안내 · 캐시백 프로모션 2026 (2026.02.01~2027.01.31)', groups:{ kbankPromo:[[300000,1000]] }, groupLabels:{ kbankPromo:'GS25·커피 통합 한도' }, benefits:[
       b('kbank-base', ['*'], '조건 없는 기본 캐시백', { rateSchedule:{ type:'weekday', weekday:.002, weekend:.004 }, dynamicRateLabel:'0.2~0.4%', unlimited:true, fallback:true, conditionNote:'평일 0.2% · 주말 0.4%' }),
       b('kbank-baemin', ['baemin'], '배달의민족 1,000원', { flat:1000, minAmount:20000, minSpend:300000, monthlyCount:1, conditionNote:'배민페이 또는 카카오뱅크 카드 직접 결제만 적용' }),
       b('kbank-gs25', ['gs25'], 'GS25 100원', { flat:100, minAmount:5000, minSpend:300000, monthlyCount:10, group:'kbankPromo', conditionNote:'오프라인 결제만 적용' }),
@@ -96,29 +215,29 @@ const cards = [
     ]
   },
   {
-    id: 'kakaopay', issuer: '신한카드', name: '카카오페이 신한 체크카드', kind: '적립형', source: '카드고릴라 286 · 신한카드 공식 안내',
+    id: 'kakaopay', issuer: '신한카드', name: '카카오페이 신한 체크카드', kind: '적립형', rewardMedium: '카카오페이머니', source: '카드고릴라 286 · 신한카드 공식 안내',
     groups:{ kakao:[[300000,5000],[500000,7000],[700000,10000],[1000000,13000]] }, benefits:[
       b('kakao-pay', ['*'], '카카오페이 결제 2%', { rate:.02, reward:'point', payment:'kakaopay', monthlyCap:10000, fallback:true, domesticOnly:true, displayMerchants:['카카오페이'] }),
       b('kakao-transit', ['transit'], '버스·지하철 3%', { rate:.03, reward:'point', minSpend:300000, monthlyCap:5000, group:'kakao' }),
       b('kakao-phone', ['skt','kt','lgu'], 'SKT·KT·LG U+ 자동이체 3%', { rate:.03, reward:'point', minSpend:300000, minAmount:50000, monthlyCap:5000, payment:'autopay', group:'kakao' }),
       b('kakao-cgv', ['cgv'], 'CGV 최대 3,000P', { flat:3000, reward:'point', minSpend:300000, monthlyCount:1, group:'kakao', membershipStacking:{ 'skt-cgv':{ discount:'blocked' } }, conditionNote:'CGV 앱·홈페이지 직접 예매 또는 극장 현장 결제만 적용 · T멤버십 앱 무비 예매 제외' }),
       b('kakao-overseas', ['overseas'], '해외 가맹점 1%', { rate:.01, reward:'point' })
-    ], note:'국내 혜택이 겹치면 교통·통신·영화가 우선이며 중복 적립되지 않습니다.'
+    ], note:'국내 혜택이 겹치면 교통·통신·영화가 우선이며 중복 적립되지 않습니다. 카카오페이 미가입·정보 불일치 등으로 카카오페이머니 적립이 불가능하면 마이신한포인트로 적립됩니다.'
   },
   {
-    id: 'simple', issuer: '하나카드', name: '더 심플 체크카드', kind: '캐시백형', source: '카드고릴라 2810 · 하나카드 상품설명서', groups:{}, benefits:[
+    id: 'simple', issuer: '하나카드', name: '더 심플 체크카드', kind: '캐시백형', rewardMedium: '결제계좌', source: '카드고릴라 2810 · 하나카드 상품설명서', groups:{}, benefits:[
       b('simple-phone', ['skt','kt','lgu','mvno'], 'SKT·KT·LG U+·알뜰폰 자동이체 5,000원', { flat:5000, minAmount:10000, minSpend:300000, monthlyCap:5000, payment:'autopay' }),
       b('simple-coffee', ['starbucks','coffeebean','twosome'], '스타벅스·커피빈·투썸플레이스 5%', { rate:.05, minAmount:10000, minSpend:300000, monthlyCap:2000, channel:'offline' })
     ]
   },
   {
-    id: 'samsungmoney', issuer: 'Samsung Wallet · 우리카드 제휴', name: '삼성월렛 머니', kind: '적립형', source: '삼성전자 Samsung Wallet 공식 안내', requiredPayment:'samsungmoney', groups:{}, benefits:[
+    id: 'samsungmoney', issuer: 'Samsung Wallet · 우리카드 제휴', name: '삼성월렛 머니', kind: '적립형', rewardMedium: '삼성월렛 포인트', source: '삼성전자 Samsung Wallet 공식 안내', requiredPayment:'samsungmoney', groups:{}, benefits:[
       b('samsungmoney-offline', ['*'], '오프라인 0.5% 기본 적립', { rate:.005, reward:'point', payment:'samsungmoney', channel:'offline', domesticOnly:true, unlimited:true, fallback:true }),
       b('samsungmoney-online', ['naverplus','hmall','lotteon','cjonstyle','wconcept'], '네이버플러스 스토어·H몰·롯데ON·CJ온스타일·W컨셉 1.5% 기본 적립', { rate:.015, reward:'point', payment:'samsungmoney', channel:'online', domesticOnly:true, unlimited:true })
     ], note:'온라인은 삼성월렛 머니를 지원하는 제휴처에서만 사용할 수 있습니다. 우리은행 계좌 연결 및 월별 이벤트 추가 적립은 변경·조기 종료될 수 있어 현재 자동 계산에서 제외했습니다.'
   },
   {
-    id: 'love', issuer: '신한카드', name: '신한카드 LOVE', kind: '할인형', source: '신한카드 LOVE 공식 안내',
+    id: 'love', issuer: '신한카드', name: '신한카드 LOVE', kind: '할인형', rewardMedium: 'LOVE포인트 병행', source: '신한카드 LOVE 공식 안내',
     groups:{ love:[[200000,5000],[300000,10000],[500000,20000],[800000,30000],[1500000,50000]] }, benefits:[
       b('love-offline-shop', ['lotte-department','hyundai-department','shinsegae-department','galleria-department','emart','lottemart','homeplus'], '롯데·현대·신세계·갤러리아백화점·이마트·롯데마트·홈플러스 5%', { rate:.05, minSpend:200000, txnAmountCap:100000, txnCap:5000, monthlyCount:2, group:'love', displayMerchants:['롯데·현대·신세계·갤러리아백화점','이마트·롯데마트·홈플러스'], conditionNote:'오프라인 매장만 적용 · SSM·상품권 구매 제외' }),
       b('love-online-shop', ['gshome'], 'GS홈쇼핑 5%', { rate:.05, minSpend:200000, txnAmountCap:100000, txnCap:5000, dailyCount:1, monthlyCount:2, group:'love' }),
@@ -138,8 +257,17 @@ const cards = [
   }
 ];
 
+const defaultOwnedCardIds = [
+  'nori','soltravel','hana','deepdream','kakaobank','kakaopay','simple','samsungmoney','love'
+];
+
 const cardSourceUrls = {
+  'woori-point': 'https://pc.wooricard.com/dcpc/yh1/crd/crd01/H1CRD201S00.do?recomNo=834629',
+  'amex-platinum': 'https://www.hyundaicard.com/docfiles/resources/pc/html/carDtl/AMPT_PC.html',
+  'samsung-happiness-v2': 'https://www.samsungcard.com/home/Card/Cardinfo/PGHPPCCCardCardinfoDetails001?code=AAP1688&site=GP007474&webViewFirstPage=true',
   nori: 'https://card.kbcard.com/CRD/DVIEW/HCAMCXPRICAC0076?cooperationcode=07964&mainCC=a',
+  'coupang-wow-card': 'https://card.kbcard.com/CRD/DVIEW/HCAMCXPRICAC0076?mainCC=a&cooperationcode=09293',
+  'gaon-biz': 'https://card.kbcard.com/CRD/DVIEW/HCAMCXPRICAC0076?cooperationcode=09176&mainCC=a',
   soltravel: 'https://www.shinhancard.com/pconts/html/card/travel/travel_supersol.html',
   hana: 'https://www.hanacard.co.kr/OPI41000000D.web?CD_PD_SEQ=18813&mID=PI41018813P&schID=pcd',
   deepdream: 'https://www.shinhancard.com/pconts/html/card/apply/check/1188313_2206.html',
@@ -151,7 +279,12 @@ const cardSourceUrls = {
 };
 
 const cardGorillaUrls = {
+  'woori-point': 'https://www.card-gorilla.com/card/detail/84',
+  'amex-platinum': 'https://www.card-gorilla.com/card/detail/2280',
+  'samsung-happiness-v2': 'https://www.card-gorilla.com/card/detail/718',
   nori: 'https://www.card-gorilla.com/card/detail/2422',
+  'coupang-wow-card': 'https://www.card-gorilla.com/card/detail/2609',
+  'gaon-biz': 'https://www.card-gorilla.com/card/detail/1294',
   soltravel: 'https://www.card-gorilla.com/card/detail/2667',
   hana: 'https://www.card-gorilla.com/card/detail/2934',
   deepdream: 'https://www.card-gorilla.com/card/detail/281',
@@ -163,4 +296,10 @@ const cardGorillaUrls = {
 
 const cardReferenceUrls = {
   samsungmoney: 'https://r1.community.samsung.com/t5/samsung-wallet/%EC%82%BC%EC%84%B1%EC%9B%94%EB%A0%9B%EB%A8%B8%EB%8B%88-%EA%B2%B0%EC%A0%9C-%ED%98%9C%ED%83%9D/td-p/37921928'
+};
+
+const cardAdditionalSourceUrls = {
+  'coupang-wow-card': [
+    { label:'2026년 10월 프로모션 공식 안내', url:'https://card.kbcard.com/BON/DVIEW/HBBMCXCRVNEC0001?eventNum=1000647&mainCC=a' }
+  ]
 };
