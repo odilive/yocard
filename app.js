@@ -8,33 +8,40 @@ const merchants = [
   ['parisbaguette', '파리바게뜨', '베이커리'], ['touslesjours', '뚜레쥬르', '베이커리'], ['pariscroissant', '파리크라상', '베이커리'], ['billyangel', '빌리엔젤', '베이커리'], ['breadnco', '브레댄코', '베이커리'], ['openbakery', '열린베이커리', '베이커리'],
   ['cu', 'CU', '편의점'], ['gs25', 'GS25', '편의점'], ['seveneleven', '세븐일레븐', '편의점'], ['emart24', '이마트24', '편의점'],
   ['naverplus', '네이버플러스 스토어', '온라인쇼핑'], ['coupang', '쿠팡', '온라인쇼핑'], ['gmarket', 'G마켓', '온라인쇼핑'], ['11st', '11번가', '온라인쇼핑'], ['musinsa', '무신사', '온라인쇼핑'], ['29cm', '29CM', '온라인쇼핑'], ['ably', '에이블리', '온라인쇼핑'], ['auction', '옥션', '온라인쇼핑'], ['lotteon', '롯데ON', '온라인쇼핑'], ['hmall', 'H몰', '온라인쇼핑'], ['cjonstyle', 'CJ온스타일', '온라인쇼핑'], ['wconcept', 'W컨셉', '온라인쇼핑'],
-  ['googleplay', '구글플레이스토어', '디지털'], ['appstore', '앱스토어', '디지털'], ['netflix', '넷플릭스', '구독'], ['youtube', '유튜브 프리미엄', '구독'], ['naverwebtoon', '네이버웹툰', '구독'], ['naverplusmembership', '네이버플러스 멤버십', '구독'], ['coupangwow', '쿠팡와우 멤버십', '구독'],
+  ['googleplay', '구글플레이스토어', '구독·디지털'], ['appstore', '앱스토어', '구독·디지털'], ['netflix', '넷플릭스', '구독·디지털'], ['youtube', '유튜브 프리미엄', '구독·디지털'], ['naverwebtoon', '네이버웹툰', '구독·디지털'], ['naverplusmembership', '네이버플러스 멤버십', '구독·디지털'], ['coupangwow', '쿠팡와우 멤버십', '구독·디지털'],
   ['baemin', '배달의민족', '배달'], ['yogiyo', '요기요', '배달'], ['coupangeats', '쿠팡이츠', '배달'],
-  ['cgv', 'CGV', '영화'], ['lottecinema', '롯데시네마', '영화'], ['megabox', '메가박스', '영화'], ['interpark', '인터파크 티켓', '문화'],
-  ['oliveyoung', '올리브영', '뷰티'], ['daiso', '다이소', '생활'], ['hairsalon', '미용실', '뷰티'],
+  ['cgv', 'CGV', '영화·문화'], ['lottecinema', '롯데시네마', '영화·문화'], ['megabox', '메가박스', '영화·문화'], ['interpark', '인터파크 티켓', '영화·문화'],
+  ['oliveyoung', '올리브영', '생활·뷰티'], ['daiso', '다이소', '생활·뷰티'], ['hairsalon', '미용실', '생활·뷰티'],
   ['skt', 'SKT 통신요금', '통신'], ['kt', 'KT 통신요금', '통신'], ['lgu', 'LG U+ 통신요금', '통신'], ['liivm', 'Liiv M 통신요금', '통신'], ['mvno', '기타 알뜰폰 통신요금', '통신'],
-  ['transit', '버스·지하철', '교통'], ['taxi', '택시', '교통'], ['rail', 'KTX·SRT·ITX', '교통'], ['overseas-transit', '해외 대중교통', '해외'],
-  ['gs-caltex', 'GS칼텍스', '주유'], ['skenergy', 'SK에너지', '주유'], ['s-oil', 'S-OIL', '주유'], ['hyundaioilbank', '현대오일뱅크', '주유'], ['gas', '기타 주유소', '주유'],
+  ['transit', '버스·지하철', '교통·주유'], ['taxi', '택시', '교통·주유'], ['rail', 'KTX·SRT·ITX', '교통·주유'], ['overseas-transit', '해외 대중교통', '해외'],
+  ['gs-caltex', 'GS칼텍스', '교통·주유'], ['skenergy', 'SK에너지', '교통·주유'], ['s-oil', 'S-OIL', '교통·주유'], ['hyundaioilbank', '현대오일뱅크', '교통·주유'], ['gas', '기타 주유소', '교통·주유'],
   ['everland', '에버랜드', '놀이공원'], ['lotteworld', '롯데월드', '놀이공원'], ['seoulland', '서울랜드', '놀이공원'], ['caribbean', '캐리비안베이', '놀이공원'],
   ['outback', '아웃백', '외식'], ['vips', 'VIPS', '외식'], ['yugane', '유가네닭갈비', '외식'], ['madforgarlic', '매드포갈릭', '외식'], ['ontheborder', '온더보더', '외식'], ['lagrillia', '라그릴리아', '외식'], ['saboten', '사보텐', '외식'], ['crabhouse', '크래버대게나라', '외식'], ['tacobell', '타코벨', '외식'], ['salady', '샐러디', '외식'], ['hibarin', '히바린', '외식'], ['dowonstyle', '도원스타일', '외식'], ['cafemamas', '카페마마스', '외식'], ['bulgogibrothers', '불고기브라더스', '외식'], ['jeiljemyunso', '제일제면소', '외식'],
   ['lotteria', '롯데리아', '패스트푸드'], ['mcdonalds', '맥도날드', '패스트푸드'], ['burgerking', '버거킹', '패스트푸드'], ['momstouch', '맘스터치', '패스트푸드'], ['kfc', 'KFC', '패스트푸드'], ['subway', '써브웨이', '패스트푸드'],
   ['domino', '도미노피자', '패스트푸드'], ['pizzahut', '피자헛', '패스트푸드'], ['papajohns', '파파존스피자', '패스트푸드'],
   ['bhc', 'bhc', '패스트푸드'], ['mexicana', '멕시카나', '패스트푸드'], ['misterpizza', '미스터피자', '패스트푸드'], ['banolimpizza', '반올림피자', '패스트푸드'], ['pizzaalvolo', '피자알볼로', '패스트푸드'], ['bbq', 'BBQ', '패스트푸드'], ['kyochon', '교촌치킨', '패스트푸드'], ['goobne', '굽네치킨', '패스트푸드'], ['nene', '네네치킨', '패스트푸드'], ['cheogajip', '처갓집양념치킨', '패스트푸드'],
   ['emart', '이마트', '대형마트'], ['lottemart', '롯데마트', '대형마트'], ['homeplus', '홈플러스', '대형마트'], ['hanaro', '농협 하나로마트·클럽', '대형마트'], ['traders', '이마트 트레이더스', '대형마트'], ['vicmarket', '롯데 VIC마켓', '대형마트'],
-  ['lotte-department', '롯데백화점', '백화점'], ['hyundai-department', '현대백화점', '백화점'], ['shinsegae-department', '신세계백화점', '백화점'], ['galleria-department', '갤러리아백화점', '백화점'], ['gshome', 'GS홈쇼핑', '온라인쇼핑'], ['lgelectronics', 'LG전자·하이프라자', '생활'], ['beautyplex', '뷰티플렉스', '뷰티'],
-  ['px', '군마트(PX)', '군복지'], ['military-hotel', '국군복지단 호텔·콘도', '군복지'], ['language-test', '어학시험', '교육'], ['academy', '학원', '교육'], ['kyobo', '교보문고', '서점'], ['aladin', '알라딘', '서점'],
+  ['lotte-department', '롯데백화점', '백화점'], ['hyundai-department', '현대백화점', '백화점'], ['shinsegae-department', '신세계백화점', '백화점'], ['galleria-department', '갤러리아백화점', '백화점'], ['gshome', 'GS홈쇼핑', '온라인쇼핑'], ['lgelectronics', 'LG전자·하이프라자', '생활·뷰티'], ['beautyplex', '뷰티플렉스', '생활·뷰티'],
+  ['px', '군마트(PX)', '군복지'], ['military-hotel', '국군복지단 호텔·콘도', '군복지'], ['language-test', '어학시험', '교육·서점'], ['academy', '학원', '교육·서점'], ['kyobo', '교보문고', '교육·서점'], ['aladin', '알라딘', '교육·서점'],
   ['overseas', '해외 일반 가맹점', '해외'], ['other', '그 외 일반 가맹점', '기타']
 ].map(([id, label, category]) => ({ id, label, category }));
 
 // 계산기 선택창은 카드사 분류가 아니라, 실제 결제처를 떠올리기 쉬운 순서로 고정한다.
-const merchantCategoryOrder = ['카페','베이커리','편의점','패스트푸드','외식','배달','온라인쇼핑','구독','디지털','영화','뷰티','생활','대형마트','백화점','교통','주유','통신','놀이공원','교육','서점','군복지','해외','기타'];
+const merchantCategoryOrder = ['카페','베이커리','편의점','패스트푸드','외식','배달','생활·뷰티','온라인쇼핑','대형마트','백화점','통신','구독·디지털','영화·문화','놀이공원','교통·주유','교육·서점','군복지','해외','기타'];
+const categoryAliases = {
+  '구독':'구독·디지털', '디지털':'구독·디지털',
+  '생활':'생활·뷰티', '뷰티':'생활·뷰티',
+  '영화':'영화·문화', '문화':'영화·문화',
+  '교통':'교통·주유', '주유':'교통·주유',
+  '교육':'교육·서점', '서점':'교육·서점'
+};
 
 // 금액 미정일 때 혜택의 상대적인 크기를 비교하기 위한 카테고리별 기준금액이다.
 const categorySampleAmounts = {
   '카페':12000, '편의점':10000, '베이커리':15000, '온라인쇼핑':30000,
-  '배달':20000, '영화':15000, '교통':50000, '통신':60000,
+  '배달':20000, '구독·디지털':15000, '영화·문화':30000, '생활·뷰티':30000, '교통·주유':50000, '통신':60000,
   '외식':50000, '대형마트':80000, '백화점':80000, '패스트푸드':30000,
-  '놀이공원':50000, '주유':50000, '교육':200000, '군복지':50000, '해외':50000
+  '놀이공원':50000, '교육·서점':100000, '군복지':50000, '해외':50000
 };
 
 const cards = [
@@ -299,7 +306,11 @@ function loadState() {
       ownedCards: Array.isArray(saved.ownedCards)
         ? [...new Set(saved.ownedCards)].filter(cardId => cards.some(card => card.id === cardId))
         : cards.filter(card => saved.cardEnabled?.[card.id] !== false).map(card => card.id),
-      favorites: Array.isArray(saved.favorites) ? saved.favorites : []
+      favorites: Array.isArray(saved.favorites) ? saved.favorites.map(key => {
+        if (typeof key !== 'string' || !key.startsWith('category:')) return key;
+        const category = key.slice('category:'.length);
+        return `category:${categoryAliases[category] || category}`;
+      }) : []
     };
     if (saved.period !== period) return { ...structuredClone(initialState), ...profile, spends:saved.spends || {} };
     return { ...structuredClone(initialState), ...savedState, ...profile };
@@ -582,7 +593,7 @@ function shortSpend(amount) {
 function paymentLabel(id) { return ({card:'일반 카드',kbpay:'KB Pay',kakaopay:'카카오페이',samsungmoney:'삼성월렛 머니',autopay:'자동이체'})[id] || id; }
 function channelForMerchant(merchantId) {
   const category = merchants.find(merchant => merchant.id === merchantId)?.category;
-  return ['온라인쇼핑','구독','디지털'].includes(category) ? 'online' : 'offline';
+  return ['온라인쇼핑','구독·디지털'].includes(category) ? 'online' : 'offline';
 }
 function recommendedPayment(result) {
   const methods = new Set(result.eligible.map(item => item.benefit.payment).filter(Boolean));
@@ -602,7 +613,7 @@ function inputValues() {
     category: merchant ? '' : category,
     amount: Number(document.querySelector('#amount').value.replace(/[^0-9]/g,'')) || 0,
     payment: 'auto',
-    channel: merchant ? channelForMerchant(merchant) : ['온라인쇼핑','구독','디지털'].includes(category) ? 'online' : 'offline',
+    channel: merchant ? channelForMerchant(merchant) : ['온라인쇼핑','구독·디지털'].includes(category) ? 'online' : 'offline',
     eventItem:false,
     membershipEligible:false
   };
@@ -884,7 +895,7 @@ function renderUnifiedResults(input) {
       ? `<p class="strategy-breakdown">카드 ${won.format(strategy.assessment?.value || 0)}원 + T멤버십 ${won.format(strategy.membership.assessment?.value || 0)}원</p>`
       : '';
     const totalLabel = strategy.combination ? '<span class="strategy-total-label">총 혜택</span>' : '';
-    return `<article class="strategy-row${strategy.combination ? ' is-combination' : ''}"><div><span class="strategy-target">${escapeHtml(targetAndScenario)}</span><h3>${cardTitle}</h3><p>${escapeHtml(strategyBenefitText(strategy))}</p>${membershipAddon}${valueBreakdown}<small>${escapeHtml(conditions)}</small></div><strong>${totalLabel}${escapeHtml(value)}</strong></article>`;
+    return `<article class="strategy-row${strategy.combination ? ' is-combination' : ''}"><div class="strategy-main"><span class="strategy-target">${escapeHtml(targetAndScenario)}</span><h3>${cardTitle}</h3><p>${escapeHtml(strategyBenefitText(strategy))}</p>${membershipAddon}${valueBreakdown}</div><strong>${totalLabel}${escapeHtml(value)}</strong><small class="strategy-conditions">${escapeHtml(conditions)}</small></article>`;
   };
   const section = (title, note, items, empty, type) => `<section class="strategy-section strategy-section-${type}"><div class="strategy-section-heading"><span class="strategy-section-state">${type === 'current' ? '현재 적용' : '현재 적용 불가'}</span><div><h3>${title}</h3><p>${note}</p></div></div>${items.length ? items.map(row).join('') : `<p class="strategy-empty">${empty}</p>`}</section>`;
   const targetName = input.category || merchants.find(merchant => merchant.id === input.merchant)?.label || '구매처';

@@ -161,8 +161,8 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .strategy-section-later .strategy-section-state { background: rgba(255,255,255,.09); color: #aebbc1; }
 .strategy-section-later .strategy-section-heading h3 { color: #c5d0d5; }
 .strategy-section-later .strategy-section-heading p { color: #84949c; }
-.strategy-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 15px 0; border-top: 1px solid rgba(255,255,255,.11); }
-.strategy-row > div { min-width: 0; }
+.strategy-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 14px; padding: 15px 0; border-top: 1px solid rgba(255,255,255,.11); }
+.strategy-row > .strategy-main { min-width: 0; }
 .strategy-row .strategy-target { color: var(--mint); font-size: .78rem; font-weight: 850; }
 .strategy-row h3 { margin: 4px 0 3px; font-size: 1rem; color: #fff; }
 .strategy-detail-link { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 800; text-align: left; }
@@ -176,8 +176,8 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .strategy-row .membership-addon:hover, .strategy-row .membership-addon:focus-visible { color: var(--mint); }
 .strategy-row .membership-addon:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; border-radius: 4px; }
 .strategy-row .strategy-breakdown { margin-top: 6px; color: #aebfc5; font-size: .78rem; }
-.strategy-row small { display: block; margin-top: 5px; color: #9faeb7; font-size: .78rem; line-height: 1.45; }
-.strategy-row > strong { display: grid; justify-items: end; gap: 3px; padding-top: 20px; color: #fff; white-space: nowrap; font-size: .95rem; }
+.strategy-row .strategy-conditions { grid-column: 1 / -1; display: block; margin-top: 5px; color: #9faeb7; font-size: .78rem; line-height: 1.45; }
+.strategy-row > strong { display: grid; align-self: start; justify-items: end; gap: 3px; padding-top: 20px; color: #fff; white-space: nowrap; font-size: .95rem; }
 .strategy-total-label { color: #9fb8af; font-size: .68rem; font-weight: 750; }
 .strategy-row.is-combination { border-color: rgba(100,225,196,.35); }
 .strategy-row.is-combination > strong { color: var(--mint); }
@@ -207,10 +207,10 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .card-detail-dialog .card-detail-content { min-height: 0; flex: 1 1 auto; margin-top: 0; padding: clamp(22px, 4vw, 36px); overflow: auto; }
 .profile-settings { margin-top: 26px; padding: 18px; border-radius: 16px; background: #eef7f4; }
 .profile-settings h3, .status-section-head h3 { margin: 0; font-size: .96rem; }
-.profile-settings-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.profile-settings-head { display: block; }
 .profile-settings-head h3 small { color: var(--ink-soft); font-size: .72rem; font-weight: 700; }
 .profile-settings-head p { margin: 5px 0 0; color: var(--ink-soft); font-size: .78rem; line-height: 1.45; }
-.profile-detail-button { min-height: 36px; flex: 0 0 auto; padding: 0 12px; border: 1px solid #a9cec3; border-radius: 10px; background: #fff; color: var(--mint-dark); font-size: .76rem; font-weight: 800; }
+.profile-detail-button { min-height: 36px; margin-top: 12px; padding: 0 12px; border: 1px solid #a9cec3; border-radius: 10px; background: #fff; color: var(--mint-dark); font-size: .76rem; font-weight: 800; }
 .profile-detail-button:hover { border-color: var(--mint-dark); background: #f7fffc; }
 .profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
 .profile-field { display: grid; gap: 7px; color: var(--ink-soft); font-size: .8rem; font-weight: 800; }
@@ -296,12 +296,15 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
   .shell { width: min(100% - 20px, 1180px); margin-top: 14px; gap: 12px; }
   .decision-panel, .result-panel { border-radius: 20px; }
   .decision-panel { padding: 20px; }
+  .result-panel { padding: 20px 12px; }
   .section-kicker { margin-bottom: 6px; font-size: .72rem; }
   h1 { margin-bottom: 8px; font-size: 1.75rem; line-height: 1.08; }
   .lead { margin-bottom: 20px; font-size: .88rem; line-height: 1.5; }
   .recommend-form { grid-template-columns: 1fr; gap: 15px; }
   select, .money-input { min-height: 50px; }
   .submit-button { min-height: 54px; }
+  .strategy-section { padding: 15px 10px 3px; border-radius: 15px; }
+  .strategy-row { gap: 0 8px; }
   .field-amount, .field-method, .submit-button, .conditional-option { grid-column: auto; }
   .segmented { grid-template-columns: repeat(2, 1fr); }
   .dialog { width: calc(100% - 16px); max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); border-radius: 18px; }
@@ -347,7 +350,6 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
   .card-picker-count { justify-self: start; }
   .card-picker-list { max-height: 330px; }
   .profile-grid { grid-template-columns: 1fr; }
-  .profile-settings-head { align-items: stretch; flex-direction: column; }
   .profile-detail-button { width: 100%; }
   .dialog-actions { flex-direction: column-reverse; }
   .dialog-actions .button { width: 100%; }
