@@ -99,13 +99,28 @@
       </div>
       <section class="account-sync" id="accountSync" aria-labelledby="accountSyncTitle">
         <div class="account-sync-copy">
-          <h3 id="accountSyncTitle">설정 동기화</h3>
-          <p id="accountSyncDescription">로그인하면 다른 기기에서도 내 카드 설정을 불러올 수 있습니다.</p>
+          <h3 id="accountSyncTitle">계정</h3>
+          <p id="accountSyncDescription">로그인하면 어느 기기에서든 내 카드 설정을 불러올 수 있습니다.</p>
         </div>
         <div class="account-sync-signed-out" id="accountSyncSignedOut">
-          <div class="account-sync-email">
-            <input id="accountEmail" type="email" inputmode="email" autocomplete="email" aria-label="로그인할 이메일" placeholder="이메일 주소">
-            <button id="sendLoginLink" type="button">로그인 링크 받기</button>
+          <div class="account-auth-tabs" role="tablist" aria-label="계정 이용 방식">
+            <button id="showLoginMode" class="is-active" type="button" role="tab" aria-selected="true">로그인</button>
+            <button id="showSignupMode" type="button" role="tab" aria-selected="false">회원가입</button>
+          </div>
+          <div class="account-auth-fields">
+            <input id="accountEmail" type="email" inputmode="email" autocomplete="email" aria-label="이메일" placeholder="이메일 주소">
+            <input id="accountPassword" type="password" minlength="8" autocomplete="current-password" aria-label="비밀번호" placeholder="비밀번호 (8자 이상)">
+            <input id="accountPasswordConfirm" type="password" minlength="8" autocomplete="new-password" aria-label="비밀번호 확인" placeholder="비밀번호 확인" hidden>
+            <button id="accountAuthSubmit" type="button">로그인</button>
+          </div>
+          <button class="account-auth-link" id="resetPassword" type="button">비밀번호를 잊으셨나요?</button>
+        </div>
+        <div class="account-password-recovery" id="accountPasswordRecovery" hidden>
+          <p>새로 사용할 비밀번호를 입력해 주세요.</p>
+          <div class="account-auth-fields">
+            <input id="accountNewPassword" type="password" minlength="8" autocomplete="new-password" aria-label="새 비밀번호" placeholder="새 비밀번호 (8자 이상)">
+            <input id="accountNewPasswordConfirm" type="password" minlength="8" autocomplete="new-password" aria-label="새 비밀번호 확인" placeholder="새 비밀번호 확인">
+            <button id="updateAccountPassword" type="button">비밀번호 변경</button>
           </div>
         </div>
         <div class="account-sync-signed-in" id="accountSyncSignedIn" hidden>
