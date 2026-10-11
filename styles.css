@@ -160,7 +160,7 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .strategy-detail-link span:last-child { color: #91a6b0; font-size: .72rem; }
 .strategy-detail-link:hover, .strategy-detail-link:focus-visible { color: var(--mint); }
 .strategy-detail-link:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; border-radius: 4px; }
-.strategy-row .membership-addon { display: flex; align-items: baseline; gap: 7px; margin-top: 6px; padding: 0; border: 0; background: transparent; color: #ccece2; font-size: .84rem; text-align: left; }
+.strategy-row .membership-addon { grid-column: 1 / -1; min-width: 0; display: flex; align-items: baseline; gap: 7px; margin-top: 7px; padding: 0; border: 0; background: transparent; color: #ccece2; font-size: .84rem; text-align: left; }
 .strategy-row .membership-addon > span:first-child { flex: 0 0 auto; padding: 2px 7px; border-radius: 999px; background: rgba(88,225,181,.14); color: var(--mint); font-size: .7rem; font-weight: 850; }
 .strategy-row .membership-addon .detail-arrow { color: #91a6b0; font-size: .7rem; }
 .strategy-row .membership-addon:hover, .strategy-row .membership-addon:focus-visible { color: var(--mint); }

@@ -287,7 +287,14 @@ function defaultBenefitType(id) {
 function b(id, merchants, label, options={}) { return { id, merchants, label, reward:'discount', benefitType:defaultBenefitType(id), ...options }; }
 function mb(id, merchants, label, options={}) { return { id, merchants, label, reward:'discount', provider:'skt', ...options }; }
 
-const initialState = { period, spends:{}, carrier:'skt', membershipGrade:'silver', ownedCards:cards.map(card => card.id), favorites:[] };
+const initialState = {
+  period,
+  spends:{ hana:100000 },
+  carrier:'skt',
+  membershipGrade:'silver',
+  ownedCards:cards.map(card => card.id),
+  favorites:['category:편의점','category:온라인쇼핑']
+};
 let state = loadState();
 let lastResults = [];
 let cardPickerQuery = '';
@@ -895,7 +902,7 @@ function renderUnifiedResults(input) {
       ? `<p class="strategy-breakdown">카드 ${won.format(strategy.assessment?.value || 0)}원 + T멤버십 ${won.format(strategy.membership.assessment?.value || 0)}원</p>`
       : '';
     const totalLabel = strategy.combination ? '<span class="strategy-total-label">총 혜택</span>' : '';
-    return `<article class="strategy-row${strategy.combination ? ' is-combination' : ''}"><div class="strategy-main"><span class="strategy-target">${escapeHtml(targetAndScenario)}</span><h3>${cardTitle}</h3>${membershipAddon}${valueBreakdown}</div><strong>${totalLabel}${escapeHtml(value)}</strong><small class="strategy-conditions">${escapeHtml(conditions)}</small></article>`;
+    return `<article class="strategy-row${strategy.combination ? ' is-combination' : ''}"><div class="strategy-main"><span class="strategy-target">${escapeHtml(targetAndScenario)}</span><h3>${cardTitle}</h3>${valueBreakdown}</div><strong>${totalLabel}${escapeHtml(value)}</strong>${membershipAddon}<small class="strategy-conditions">${escapeHtml(conditions)}</small></article>`;
   };
   const section = (title, note, items, empty, type) => {
     const content = items.length ? items.map(row).join('') : `<p class="strategy-empty">${empty}</p>`;
@@ -1159,7 +1166,7 @@ function renderMerchantOptions() {
   const categorySelect = document.querySelector('#merchantCategory');
   const merchantSelect = document.querySelector('#merchant');
   const previousCategory = categorySelect.value;
-  const previousMerchant = merchantSelect.value;
+  const previousMerchant = merchantSelect.value || (!merchantSelect.options.length ? 'starbucks' : '');
   const available = merchants.filter(merchantAvailableForSelection);
   const groups = Object.groupBy ? Object.groupBy(available, merchant => merchant.category) : available.reduce((all, merchant) => ((all[merchant.category] ||= []).push(merchant), all), {});
   const categories = merchantCategoryOrder.filter(category => groups[category]);
