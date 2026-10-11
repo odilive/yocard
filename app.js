@@ -20,10 +20,6 @@ let cloudClient = null;
 let cloudUser = null;
 let cloudReady = false;
 let cloudSaveTimer = null;
-let accountAuthMode = 'login';
-let passwordRecoveryMode = typeof URLSearchParams !== 'undefined'
-  && !!window.location?.search
-  && new URLSearchParams(window.location.search).get('recovery') === '1';
 
 function normalizeSavedState(saved) {
   if (!saved || typeof saved !== 'object') return structuredClone(initialState);
@@ -1116,48 +1112,35 @@ function setAccountSyncStatus(message, isError=false) {
   status.classList.toggle('is-error', isError);
 }
 
+function setAccountAuthFeedback(message='', isError=false) {
+  const feedback = document.querySelector('#accountAuthFeedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.hidden = !message;
+  feedback.classList.toggle('is-error', isError);
+}
+
 function renderAccountSync() {
   const signedOut = document.querySelector('#accountSyncSignedOut');
   const signedIn = document.querySelector('#accountSyncSignedIn');
-  const recovery = document.querySelector('#accountPasswordRecovery');
   const description = document.querySelector('#accountSyncDescription');
-  const submitButton = document.querySelector('#accountAuthSubmit');
-  const password = document.querySelector('#accountPassword');
-  const passwordConfirm = document.querySelector('#accountPasswordConfirm');
-  const resetButton = document.querySelector('#resetPassword');
-  const loginTab = document.querySelector('#showLoginMode');
-  const signupTab = document.querySelector('#showSignupMode');
+  const googleButton = document.querySelector('#googleSignIn');
   if (!signedOut || !signedIn) return;
 
   if (!accountSyncConfigured()) {
     signedOut.hidden = false;
     signedIn.hidden = true;
-    recovery.hidden = true;
-    submitButton.disabled = true;
+    googleButton.disabled = true;
     description.textContent = 'Supabase 연결 정보를 입력하면 로그인과 설정 동기화를 사용할 수 있습니다.';
     return;
   }
 
-  submitButton.disabled = false;
-  signedOut.hidden = !!cloudUser || passwordRecoveryMode;
-  signedIn.hidden = !cloudUser || passwordRecoveryMode;
-  recovery.hidden = !passwordRecoveryMode;
-  const signingUp = accountAuthMode === 'signup';
-  passwordConfirm.hidden = !signingUp;
-  resetButton.hidden = signingUp;
-  password.autocomplete = signingUp ? 'new-password' : 'current-password';
-  submitButton.textContent = signingUp ? '회원가입' : '로그인';
-  loginTab.classList.toggle('is-active', !signingUp);
-  signupTab.classList.toggle('is-active', signingUp);
-  loginTab.setAttribute('aria-selected', String(!signingUp));
-  signupTab.setAttribute('aria-selected', String(signingUp));
-  description.textContent = passwordRecoveryMode
-    ? '비밀번호를 변경하면 이 계정으로 다시 로그인할 수 있습니다.'
-    : cloudUser
-      ? '이 계정의 설정을 다른 기기에서도 동일하게 사용할 수 있습니다.'
-      : signingUp
-        ? '계정을 만들면 카드 설정과 즐겨찾기를 안전하게 보관할 수 있습니다.'
-        : '로그인하면 어느 기기에서든 내 카드 설정을 불러올 수 있습니다.';
+  googleButton.disabled = false;
+  signedOut.hidden = !!cloudUser;
+  signedIn.hidden = !cloudUser;
+  description.textContent = cloudUser
+    ? '이 계정의 설정을 다른 기기에서도 동일하게 사용할 수 있습니다.'
+    : 'Google로 로그인하면 어느 기기에서든 내 카드 설정을 불러올 수 있습니다.';
   if (cloudUser) {
     document.querySelector('#accountEmailLabel').textContent = cloudUser.email || '로그인한 계정';
     setAccountSyncStatus(cloudReady ? '동기화 완료' : '설정을 불러오는 중');
@@ -1245,114 +1228,20 @@ async function applyCloudSession(session) {
   await loadCloudState(user);
 }
 
-function setAccountAuthMode(mode) {
-  accountAuthMode = mode === 'signup' ? 'signup' : 'login';
-  document.querySelector('#accountPassword').value = '';
-  document.querySelector('#accountPasswordConfirm').value = '';
-  renderAccountSync();
-}
-
-function accountCredentials() {
-  const emailInput = document.querySelector('#accountEmail');
-  const passwordInput = document.querySelector('#accountPassword');
-  const confirmInput = document.querySelector('#accountPasswordConfirm');
-  const email = emailInput.value.trim();
-  if (!email || !emailInput.checkValidity()) {
-    emailInput.reportValidity();
-    return null;
-  }
-  if (!passwordInput.checkValidity() || passwordInput.value.length < 8) {
-    passwordInput.reportValidity();
-    return null;
-  }
-  if (accountAuthMode === 'signup' && passwordInput.value !== confirmInput.value) {
-    showToast('비밀번호 확인이 일치하지 않아요.');
-    confirmInput.focus();
-    return null;
-  }
-  return { email, password:passwordInput.value };
-}
-
-async function submitAccountAuth() {
+async function signInWithGoogle() {
   if (!cloudClient) return;
-  const credentials = accountCredentials();
-  if (!credentials) return;
-  const button = document.querySelector('#accountAuthSubmit');
-  const signingUp = accountAuthMode === 'signup';
+  const button = document.querySelector('#googleSignIn');
+  setAccountAuthFeedback();
   button.disabled = true;
-  button.textContent = signingUp ? '가입 중' : '로그인 중';
-  let result;
-  if (signingUp) {
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
-    result = await cloudClient.auth.signUp({
-      email:credentials.email,
-      password:credentials.password,
-      options:{ emailRedirectTo:redirectTo }
-    });
-  } else {
-    result = await cloudClient.auth.signInWithPassword(credentials);
-  }
-  button.disabled = false;
-  button.textContent = signingUp ? '회원가입' : '로그인';
-  if (result.error) {
-    showToast(signingUp ? '회원가입하지 못했어요. 입력 내용을 확인해 주세요.' : '이메일 또는 비밀번호를 확인해 주세요.');
-    return;
-  }
-  document.querySelector('#accountPassword').value = '';
-  document.querySelector('#accountPasswordConfirm').value = '';
-  if (signingUp && !result.data.session) {
-    setAccountAuthMode('login');
-    showToast('확인 메일을 보냈어요. 인증 후 로그인해 주세요.');
-    return;
-  }
-  await applyCloudSession(result.data.session);
-  showToast(signingUp ? '회원가입과 로그인을 완료했어요.' : '로그인했어요.');
-}
-
-async function sendPasswordReset() {
-  if (!cloudClient) return;
-  const input = document.querySelector('#accountEmail');
-  const email = input.value.trim();
-  if (!email || !input.checkValidity()) {
-    input.reportValidity();
-    return;
-  }
-  const button = document.querySelector('#resetPassword');
-  button.disabled = true;
-  const redirectTo = `${window.location.origin}${window.location.pathname}?recovery=1`;
-  const { error } = await cloudClient.auth.resetPasswordForEmail(email, { redirectTo });
-  button.disabled = false;
-  showToast(error ? '재설정 메일을 보내지 못했어요.' : '비밀번호 재설정 메일을 보냈어요.');
-}
-
-async function updateAccountPassword() {
-  if (!cloudClient) return;
-  const password = document.querySelector('#accountNewPassword');
-  const confirm = document.querySelector('#accountNewPasswordConfirm');
-  if (!password.checkValidity() || password.value.length < 8) {
-    password.reportValidity();
-    return;
-  }
-  if (password.value !== confirm.value) {
-    showToast('비밀번호 확인이 일치하지 않아요.');
-    confirm.focus();
-    return;
-  }
-  const button = document.querySelector('#updateAccountPassword');
-  button.disabled = true;
-  const { error } = await cloudClient.auth.updateUser({ password:password.value });
-  button.disabled = false;
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await cloudClient.auth.signInWithOAuth({
+    provider:'google',
+    options:{ redirectTo }
+  });
   if (error) {
-    showToast('비밀번호를 변경하지 못했어요. 재설정 메일을 다시 받아 주세요.');
-    return;
+    button.disabled = false;
+    setAccountAuthFeedback('Google 로그인을 시작하지 못했어요. 연결 설정을 확인해 주세요.', true);
   }
-  password.value = '';
-  confirm.value = '';
-  passwordRecoveryMode = false;
-  const cleanUrl = `${window.location.pathname}${window.location.hash && !window.location.hash.includes('access_token') ? window.location.hash : ''}`;
-  window.history.replaceState({}, '', cleanUrl);
-  renderAccountSync();
-  showToast('비밀번호를 변경했어요.');
 }
 
 async function signOutAccount() {
@@ -1376,11 +1265,7 @@ async function initCloudSync() {
   } else {
     await applyCloudSession(data.session);
   }
-  cloudClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      passwordRecoveryMode = true;
-      renderAccountSync();
-    }
+  cloudClient.auth.onAuthStateChange((_event, session) => {
     window.setTimeout(() => applyCloudSession(session), 0);
   });
 }
@@ -1408,22 +1293,8 @@ function setup() {
   document.querySelector('#merchantCategory').addEventListener('change', () => { renderMerchantOptions(); renderResults(inputValues()); });
   document.querySelector('#merchant').addEventListener('change', () => { updateConditional(); renderResults(inputValues()); });
   document.querySelector('#openStatus').addEventListener('click', () => { renderStatusForm(); const dialog = document.querySelector('#statusDialog'); dialog.showModal(); dialog.querySelector('.dialog-card').scrollTop = 0; });
-  document.querySelector('#showLoginMode').addEventListener('click', () => setAccountAuthMode('login'));
-  document.querySelector('#showSignupMode').addEventListener('click', () => setAccountAuthMode('signup'));
-  document.querySelector('#accountAuthSubmit').addEventListener('click', submitAccountAuth);
-  document.querySelector('#resetPassword').addEventListener('click', sendPasswordReset);
-  document.querySelector('#updateAccountPassword').addEventListener('click', updateAccountPassword);
+  document.querySelector('#googleSignIn').addEventListener('click', signInWithGoogle);
   document.querySelector('#signOutAccount').addEventListener('click', signOutAccount);
-  document.querySelectorAll('#accountEmail, #accountPassword, #accountPasswordConfirm').forEach(input => input.addEventListener('keydown', event => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    submitAccountAuth();
-  }));
-  document.querySelectorAll('#accountNewPassword, #accountNewPasswordConfirm').forEach(input => input.addEventListener('keydown', event => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    updateAccountPassword();
-  }));
   document.querySelector('#applyCardSearch').addEventListener('click', applyCardSearch);
   document.querySelector('#cardSearch').addEventListener('input', event => {
     if (event.currentTarget.value.trim()) return;

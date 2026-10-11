@@ -198,24 +198,20 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .account-sync-copy h3 { margin: 0; font-size: .96rem; }
 .account-sync-copy p { margin: 5px 0 0; color: var(--ink-soft); font-size: .78rem; line-height: 1.45; }
 .account-sync-signed-out { margin-top: 13px; }
-.account-auth-tabs { display: flex; gap: 4px; margin-bottom: 10px; padding: 3px; border-radius: 10px; background: #dfeee9; }
-.account-auth-tabs button { flex: 1; min-height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: .78rem; font-weight: 850; }
-.account-auth-tabs button.is-active { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(13,31,45,.1); }
-.account-auth-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.account-auth-fields input { width: 100%; min-width: 0; min-height: 42px; padding: 0 12px; border: 1px solid #bcd3cc; border-radius: 10px; background: #fff; color: var(--ink); }
-.account-auth-fields input:focus { position: relative; outline: 3px solid rgba(88, 225, 181, .22); border-color: var(--mint-dark); }
-.account-auth-fields button, .account-sync-signed-in button { min-height: 42px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font-size: .78rem; font-weight: 850; }
-.account-auth-fields button, #accountPasswordConfirm { grid-column: 1 / -1; }
-.account-auth-fields button:disabled, .account-sync-signed-in button:disabled, .account-auth-link:disabled { cursor: default; background: #dce6e3; color: #71817c; }
-.account-auth-link { display: block; margin: 9px 0 0 auto; padding: 2px 0; border: 0; background: transparent; color: var(--ink-soft); font-size: .74rem; text-decoration: underline; text-underline-offset: 3px; }
-.account-password-recovery { margin-top: 13px; }
-.account-password-recovery p { margin: 0 0 10px; color: var(--ink-soft); font-size: .78rem; }
+.google-signin-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 16px; border: 1px solid #b9c9c4; border-radius: 10px; background: #fff; color: var(--ink); font-size: .82rem; font-weight: 850; }
+.google-signin-button:hover { border-color: #7f9b92; background: #fbfdfc; }
+.google-signin-button:disabled { cursor: default; background: #e8efed; color: #71817c; }
+.google-signin-mark { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid #d8e0de; border-radius: 50%; background: conic-gradient(from -45deg, #4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0); color: #fff; font-size: .75rem; font-weight: 900; }
+.account-auth-note { margin: 8px 0 0; color: var(--ink-soft); font-size: .72rem; text-align: center; }
+.account-auth-feedback { margin: 10px 0 0; padding: 9px 11px; border-radius: 9px; background: #e1f5ee; color: #126247; font-size: .76rem; font-weight: 750; line-height: 1.45; }
+.account-auth-feedback.is-error { background: #fff0ed; color: var(--danger); }
 .account-sync-signed-in { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; }
 .account-sync-signed-in > div { min-width: 0; display: grid; gap: 3px; }
 .account-sync-signed-in strong { overflow: hidden; color: var(--ink); font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
 .account-sync-signed-in span { color: var(--mint-dark); font-size: .74rem; font-weight: 800; }
 .account-sync-signed-in span.is-error { color: var(--danger); }
-.account-sync-signed-in button { flex: 0 0 auto; border-radius: 10px; background: #e8efed; color: var(--ink-soft); }
+.account-sync-signed-in button { flex: 0 0 auto; min-height: 42px; padding: 0 14px; border: 0; border-radius: 10px; background: #e8efed; color: var(--ink-soft); font-size: .78rem; font-weight: 850; }
+.account-sync-signed-in button:disabled { cursor: default; color: #71817c; }
 .profile-settings { margin-top: 26px; padding: 18px; border-radius: 16px; background: #eef7f4; }
 .profile-settings h3, .status-section-head h3 { margin: 0; font-size: .96rem; }
 .profile-settings-head { display: block; }
@@ -363,7 +359,6 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
   .card-picker-tools { grid-template-columns: 1fr; }
   .card-picker-count { justify-self: start; }
   .card-picker-list { max-height: 330px; }
-  .account-auth-fields { grid-template-columns: 1fr; }
   .profile-grid { grid-template-columns: 1fr; }
   .profile-detail-button { width: 100%; }
   .dialog-actions { flex-direction: column-reverse; }
