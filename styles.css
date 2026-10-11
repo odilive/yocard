@@ -194,6 +194,22 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .card-detail-dialog .dialog-card { display: flex; flex-direction: column; height: 100%; max-height: none; padding: 0; overflow: hidden; }
 .card-detail-dialog .dialog-head { flex: 0 0 auto; padding: clamp(22px, 4vw, 36px); border-bottom: 1px solid var(--line); background: #fff; }
 .card-detail-dialog .card-detail-content { min-height: 0; flex: 1 1 auto; margin-top: 0; padding: clamp(22px, 4vw, 36px); overflow: auto; }
+.account-sync { margin-top: 18px; padding: 16px 18px; border: 1px solid #cfe1dc; border-radius: 16px; background: #f3fbf8; }
+.account-sync-copy h3 { margin: 0; font-size: .96rem; }
+.account-sync-copy p { margin: 5px 0 0; color: var(--ink-soft); font-size: .78rem; line-height: 1.45; }
+.account-sync-signed-out { margin-top: 13px; }
+.account-sync-email { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.account-sync-email input { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid #bcd3cc; border-right: 0; border-radius: 10px 0 0 10px; background: #fff; color: var(--ink); }
+.account-sync-email input:focus { position: relative; outline: 3px solid rgba(88, 225, 181, .22); border-color: var(--mint-dark); }
+.account-sync-email button, .account-sync-signed-in button { min-height: 42px; padding: 0 13px; border: 0; background: var(--navy); color: #fff; font-size: .78rem; font-weight: 850; }
+.account-sync-email button { border-radius: 0 10px 10px 0; }
+.account-sync-email button:disabled, .account-sync-signed-in button:disabled { cursor: default; background: #dce6e3; color: #71817c; }
+.account-sync-signed-in { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; }
+.account-sync-signed-in > div { min-width: 0; display: grid; gap: 3px; }
+.account-sync-signed-in strong { overflow: hidden; color: var(--ink); font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-sync-signed-in span { color: var(--mint-dark); font-size: .74rem; font-weight: 800; }
+.account-sync-signed-in span.is-error { color: var(--danger); }
+.account-sync-signed-in button { flex: 0 0 auto; border-radius: 10px; background: #e8efed; color: var(--ink-soft); }
 .profile-settings { margin-top: 26px; padding: 18px; border-radius: 16px; background: #eef7f4; }
 .profile-settings h3, .status-section-head h3 { margin: 0; font-size: .96rem; }
 .profile-settings-head { display: block; }
@@ -341,6 +357,9 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
   .card-picker-tools { grid-template-columns: 1fr; }
   .card-picker-count { justify-self: start; }
   .card-picker-list { max-height: 330px; }
+  .account-sync-email { grid-template-columns: 1fr; gap: 8px; }
+  .account-sync-email input { border-right: 1px solid #bcd3cc; border-radius: 10px; }
+  .account-sync-email button { border-radius: 10px; }
   .profile-grid { grid-template-columns: 1fr; }
   .profile-detail-button { width: 100%; }
   .dialog-actions { flex-direction: column-reverse; }

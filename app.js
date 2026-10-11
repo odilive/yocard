@@ -1,7 +1,8 @@
 const won = new Intl.NumberFormat('ko-KR');
 const today = new Date();
 const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-
+const guestStorageKey = 'card-advisor-state-v1';
+const settingsSchemaVersion = 1;
 
 const initialState = {
   period,
@@ -15,34 +16,46 @@ let state = loadState();
 let lastResults = [];
 let cardPickerQuery = '';
 let cardSearchSubmitted = false;
+let cloudClient = null;
+let cloudUser = null;
+let cloudReady = false;
+let cloudSaveTimer = null;
 
-function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('card-advisor-state-v1'));
-    if (!saved) return structuredClone(initialState);
-    const savedState = { ...saved };
-    delete savedState.membershipMode;
-    delete savedState.usage;
-    delete savedState.counts;
-    delete savedState.dailyUsage;
-    delete savedState.dailyCounts;
-    const profile = {
-      carrier: saved.carrier === 'none' ? 'none' : 'skt',
-      membershipGrade: ['vip','gold','silver','none'].includes(saved.membershipGrade) ? saved.membershipGrade : 'silver',
-      ownedCards: Array.isArray(saved.ownedCards)
-        ? [...new Set(saved.ownedCards)].filter(cardId => cards.some(card => card.id === cardId))
-        : cards.filter(card => saved.cardEnabled?.[card.id] !== false).map(card => card.id),
-      favorites: Array.isArray(saved.favorites) ? saved.favorites.map(key => {
-        if (typeof key !== 'string' || !key.startsWith('category:')) return key;
-        const category = key.slice('category:'.length);
-        return `category:${categoryAliases[category] || category}`;
-      }) : []
-    };
-    if (saved.period !== period) return { ...structuredClone(initialState), ...profile, spends:saved.spends || {} };
-    return { ...structuredClone(initialState), ...savedState, ...profile };
-  } catch { return structuredClone(initialState); }
+function normalizeSavedState(saved) {
+  if (!saved || typeof saved !== 'object') return structuredClone(initialState);
+  const savedState = { ...saved };
+  delete savedState.membershipMode;
+  delete savedState.usage;
+  delete savedState.counts;
+  delete savedState.dailyUsage;
+  delete savedState.dailyCounts;
+  const profile = {
+    carrier: saved.carrier === 'none' ? 'none' : 'skt',
+    membershipGrade: ['vip','gold','silver','none'].includes(saved.membershipGrade) ? saved.membershipGrade : 'silver',
+    ownedCards: Array.isArray(saved.ownedCards)
+      ? [...new Set(saved.ownedCards)].filter(cardId => cards.some(card => card.id === cardId))
+      : cards.filter(card => saved.cardEnabled?.[card.id] !== false).map(card => card.id),
+    favorites: Array.isArray(saved.favorites) ? saved.favorites.map(key => {
+      if (typeof key !== 'string' || !key.startsWith('category:')) return key;
+      const category = key.slice('category:'.length);
+      return `category:${categoryAliases[category] || category}`;
+    }) : []
+  };
+  if (saved.period !== period) return { ...structuredClone(initialState), ...profile, spends:saved.spends || {} };
+  return { ...structuredClone(initialState), ...savedState, ...profile };
 }
-function saveState() { localStorage.setItem('card-advisor-state-v1', JSON.stringify(state)); }
+
+function loadState(storageKey=guestStorageKey) {
+  try { return normalizeSavedState(JSON.parse(localStorage.getItem(storageKey))); }
+  catch { return structuredClone(initialState); }
+}
+
+function currentStorageKey() { return cloudUser ? `${guestStorageKey}:${cloudUser.id}` : guestStorageKey; }
+
+function saveState({ skipCloud=false }={}) {
+  localStorage.setItem(currentStorageKey(), JSON.stringify(state));
+  if (!skipCloud) queueCloudSave();
+}
 function tierValue(tiers, spend) { return [...tiers].reverse().find(([min]) => spend >= min)?.[1] || 0; }
 function isCardOwned(cardId) { return state.ownedCards.includes(cardId); }
 function isCardEnabled(cardId) { return isCardOwned(cardId); }
@@ -1079,6 +1092,178 @@ function toggleCurrentFavorite() {
   showToast(active ? `${favoriteLabel(key)} 즐겨찾기를 해제했어요.` : `${favoriteLabel(key)} 즐겨찾기에 추가했어요.`);
 }
 
+function renderStateFromStorage() {
+  renderMerchantOptions();
+  renderFavorites();
+  updateConditional();
+  renderResults(inputValues());
+  if (document.querySelector('#statusDialog')?.open) renderStatusForm();
+}
+
+function accountSyncConfigured() {
+  const config = window.YOCARD_SUPABASE || {};
+  return !!(config.url && config.publishableKey && window.supabase?.createClient);
+}
+
+function setAccountSyncStatus(message, isError=false) {
+  const status = document.querySelector('#accountSyncStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle('is-error', isError);
+}
+
+function renderAccountSync() {
+  const signedOut = document.querySelector('#accountSyncSignedOut');
+  const signedIn = document.querySelector('#accountSyncSignedIn');
+  const description = document.querySelector('#accountSyncDescription');
+  const sendButton = document.querySelector('#sendLoginLink');
+  if (!signedOut || !signedIn) return;
+
+  if (!accountSyncConfigured()) {
+    signedOut.hidden = false;
+    signedIn.hidden = true;
+    sendButton.disabled = true;
+    description.textContent = 'Supabase 연결 정보를 입력하면 로그인과 설정 동기화를 사용할 수 있습니다.';
+    return;
+  }
+
+  sendButton.disabled = false;
+  signedOut.hidden = !!cloudUser;
+  signedIn.hidden = !cloudUser;
+  description.textContent = cloudUser
+    ? '이 계정의 설정을 다른 기기에서도 동일하게 사용할 수 있습니다.'
+    : '로그인하면 다른 기기에서도 내 카드 설정을 불러올 수 있습니다.';
+  if (cloudUser) {
+    document.querySelector('#accountEmailLabel').textContent = cloudUser.email || '로그인한 계정';
+    setAccountSyncStatus(cloudReady ? '동기화 완료' : '설정을 불러오는 중');
+  }
+}
+
+async function pushCloudState() {
+  if (!cloudClient || !cloudUser || !cloudReady) return;
+  setAccountSyncStatus('저장 중');
+  const { error } = await cloudClient.from('user_settings').upsert({
+    user_id:cloudUser.id,
+    settings:state,
+    schema_version:settingsSchemaVersion,
+    updated_at:new Date().toISOString()
+  }, { onConflict:'user_id' });
+  setAccountSyncStatus(error ? '동기화 실패' : '동기화 완료', !!error);
+}
+
+function queueCloudSave() {
+  if (!cloudClient || !cloudUser || !cloudReady) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(pushCloudState, 450);
+}
+
+async function loadCloudState(user) {
+  cloudUser = user;
+  cloudReady = false;
+  renderAccountSync();
+  const userStorageKey = currentStorageKey();
+  const cachedState = localStorage.getItem(userStorageKey) ? loadState(userStorageKey) : null;
+  const { data, error } = await cloudClient
+    .from('user_settings')
+    .select('settings,schema_version,updated_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    if (cachedState) {
+      state = cachedState;
+      renderStateFromStorage();
+    }
+    renderAccountSync();
+    setAccountSyncStatus('불러오기 실패', true);
+    return;
+  }
+
+  if (data?.settings) {
+    state = normalizeSavedState(data.settings);
+  } else {
+    state = cachedState || state;
+    const { error:insertError } = await cloudClient.from('user_settings').upsert({
+      user_id:user.id,
+      settings:state,
+      schema_version:settingsSchemaVersion,
+      updated_at:new Date().toISOString()
+    }, { onConflict:'user_id' });
+    if (insertError) {
+      renderAccountSync();
+      setAccountSyncStatus('첫 설정 저장 실패', true);
+      return;
+    }
+  }
+
+  cloudReady = true;
+  saveState({ skipCloud:true });
+  renderStateFromStorage();
+  renderAccountSync();
+}
+
+async function applyCloudSession(session) {
+  const user = session?.user || null;
+  if (!user) {
+    const hadCloudUser = !!cloudUser;
+    cloudUser = null;
+    cloudReady = false;
+    clearTimeout(cloudSaveTimer);
+    if (hadCloudUser) {
+      state = loadState(guestStorageKey);
+      renderStateFromStorage();
+    }
+    renderAccountSync();
+    return;
+  }
+  if (cloudUser?.id === user.id && cloudReady) return;
+  await loadCloudState(user);
+}
+
+async function sendLoginLink() {
+  if (!cloudClient) return;
+  const input = document.querySelector('#accountEmail');
+  const button = document.querySelector('#sendLoginLink');
+  const email = input.value.trim();
+  if (!input.checkValidity() || !email) {
+    input.reportValidity();
+    return;
+  }
+  button.disabled = true;
+  button.textContent = '보내는 중';
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await cloudClient.auth.signInWithOtp({ email, options:{ emailRedirectTo:redirectTo } });
+  button.disabled = false;
+  button.textContent = '로그인 링크 받기';
+  showToast(error ? '로그인 링크를 보내지 못했어요.' : '이메일로 로그인 링크를 보냈어요.');
+}
+
+async function signOutAccount() {
+  if (!cloudClient) return;
+  const button = document.querySelector('#signOutAccount');
+  button.disabled = true;
+  await cloudClient.auth.signOut();
+  button.disabled = false;
+}
+
+async function initCloudSync() {
+  renderAccountSync();
+  if (!accountSyncConfigured()) return;
+  const config = window.YOCARD_SUPABASE;
+  cloudClient = window.supabase.createClient(config.url, config.publishableKey, {
+    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+  });
+  const { data, error } = await cloudClient.auth.getSession();
+  if (error) {
+    setAccountSyncStatus('로그인 상태 확인 실패', true);
+  } else {
+    await applyCloudSession(data.session);
+  }
+  cloudClient.auth.onAuthStateChange((_event, session) => {
+    window.setTimeout(() => applyCloudSession(session), 0);
+  });
+}
+
 function showToast(message) {
   const toast = document.querySelector('#toast');
   toast.textContent = message;
@@ -1102,6 +1287,13 @@ function setup() {
   document.querySelector('#merchantCategory').addEventListener('change', () => { renderMerchantOptions(); renderResults(inputValues()); });
   document.querySelector('#merchant').addEventListener('change', () => { updateConditional(); renderResults(inputValues()); });
   document.querySelector('#openStatus').addEventListener('click', () => { renderStatusForm(); const dialog = document.querySelector('#statusDialog'); dialog.showModal(); dialog.querySelector('.dialog-card').scrollTop = 0; });
+  document.querySelector('#sendLoginLink').addEventListener('click', sendLoginLink);
+  document.querySelector('#signOutAccount').addEventListener('click', signOutAccount);
+  document.querySelector('#accountEmail').addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    sendLoginLink();
+  });
   document.querySelector('#applyCardSearch').addEventListener('click', applyCardSearch);
   document.querySelector('#cardSearch').addEventListener('input', event => {
     if (event.currentTarget.value.trim()) return;
@@ -1125,6 +1317,7 @@ function setup() {
   updateConditional();
   renderResults(inputValues());
   registerWebMCP();
+  initCloudSync();
   window.addEventListener('pageshow', () => setTimeout(() => {
     updateConditional();
     renderResults(inputValues());

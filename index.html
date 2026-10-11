@@ -97,6 +97,25 @@
         </div>
         <button class="close-button" value="cancel" aria-label="닫기" type="submit">×</button>
       </div>
+      <section class="account-sync" id="accountSync" aria-labelledby="accountSyncTitle">
+        <div class="account-sync-copy">
+          <h3 id="accountSyncTitle">설정 동기화</h3>
+          <p id="accountSyncDescription">로그인하면 다른 기기에서도 내 카드 설정을 불러올 수 있습니다.</p>
+        </div>
+        <div class="account-sync-signed-out" id="accountSyncSignedOut">
+          <div class="account-sync-email">
+            <input id="accountEmail" type="email" inputmode="email" autocomplete="email" aria-label="로그인할 이메일" placeholder="이메일 주소">
+            <button id="sendLoginLink" type="button">로그인 링크 받기</button>
+          </div>
+        </div>
+        <div class="account-sync-signed-in" id="accountSyncSignedIn" hidden>
+          <div>
+            <strong id="accountEmailLabel"></strong>
+            <span id="accountSyncStatus">동기화 완료</span>
+          </div>
+          <button id="signOutAccount" type="button">로그아웃</button>
+        </div>
+      </section>
       <section class="card-picker" id="cardPicker" aria-label="카드 추가">
         <div class="card-picker-tools">
           <div class="card-search"><input id="cardSearch" type="search" autocomplete="off" aria-label="추가할 카드 검색" placeholder="추가할 카드명 · 카드사 · 혜택 검색"><button id="applyCardSearch" type="button">검색</button></div>
@@ -142,6 +161,8 @@
   <script src="./data/merchants.js"></script>
   <script src="./data/cards.js"></script>
   <script src="./data/membership.js"></script>
+  <script src="./data/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./app.js"></script>
 </body>
 </html>
