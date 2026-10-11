@@ -1,7 +1,6 @@
 const won = new Intl.NumberFormat('ko-KR');
 const today = new Date();
 const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-const dayKey = today.toISOString().slice(0, 10);
 
 const merchants = [
   ['starbucks', '스타벅스', '카페'], ['megacoffee', '메가MGC커피', '카페'], ['compose', '컴포즈커피', '카페'], ['paikdabang', '빽다방', '카페'], ['twosome', '투썸플레이스', '카페'], ['coffeebean', '커피빈', '카페'], ['gongcha', '공차', '카페'], ['paulbassett', '폴 바셋', '카페'], ['dunkin', '던킨', '카페'], ['baskin', '배스킨라빈스', '카페'], ['angelinus', '엔제리너스', '카페'], ['baekmidang', '백미당', '카페'], ['droptop', '드롭탑', '카페'], ['artisee', '아티제', '카페'], ['pascucci', '파스쿠찌', '카페'], ['theventi', '더벤티', '카페'], ['misterhealing', '미스터힐링', '카페'], ['coffee', '기타 카페', '카페'],
@@ -158,7 +157,7 @@ const cards = [
     groups:{ love:[[200000,5000],[300000,10000],[500000,20000],[800000,30000],[1500000,50000]] }, benefits:[
       b('love-offline-shop', ['lotte-department','hyundai-department','shinsegae-department','galleria-department','emart','lottemart','homeplus'], '롯데·현대·신세계·갤러리아백화점·이마트·롯데마트·홈플러스 5%', { rate:.05, minSpend:200000, txnAmountCap:100000, txnCap:5000, monthlyCount:2, group:'love', displayMerchants:['롯데·현대·신세계·갤러리아백화점','이마트·롯데마트·홈플러스'], conditionNote:'오프라인 매장만 적용 · SSM·상품권 구매 제외' }),
       b('love-online-shop', ['gshome'], 'GS홈쇼핑 5%', { rate:.05, minSpend:200000, txnAmountCap:100000, txnCap:5000, dailyCount:1, monthlyCount:2, group:'love' }),
-      b('love-gas', ['gs-caltex'], 'GS칼텍스 리터당 60원', { rate:60 / 1700, minSpend:200000, txnAmountCap:100000, monthlyCap:10588, dailyCount:2, group:'love', detailTitle:'GS칼텍스 · 리터당 60원', detailTags:['전월 실적 200,000원 이상','일 2회','혜택 계산 대상 결제금액 건당 최대 100,000원','월 주유금액 300,000원까지 적용','LPG 제외 · 경유·등유는 휘발유 기준 적용','기준유가에 따라 실제 할인액이 달라질 수 있음'] }),
+      b('love-gas', ['gs-caltex'], 'GS칼텍스 리터당 60원', { rate:60 / 1700, valueLabel:'리터당 60원', minSpend:200000, txnAmountCap:100000, monthlyCap:10588, dailyCount:2, group:'love', conditionNote:'리터당 60원 할인·LPG 제외·경유/등유는 휘발유 기준 적용', detailTitle:'GS칼텍스 · 리터당 60원', detailTags:['전월 실적 200,000원 이상','일 2회','혜택 계산 대상 결제금액 건당 최대 100,000원','월 주유금액 300,000원까지 적용','LPG 제외 · 경유·등유는 휘발유 기준 적용','기준유가에 따라 실제 할인액이 달라질 수 있음'] }),
       b('love-starbucks', ['starbucks'], '스타벅스 20%', { rate:.20, minSpend:200000, txnAmountCap:10000, txnCap:2000, dailyCount:1, monthlyCount:5, group:'love', membershipDiscountBlocked:true, conditionNote:'통신사 카드·쿠폰과 중복 할인 불가' }),
       b('love-restaurant20', ['outback','pariscroissant','cafemamas'], '아웃백·파리크라상·카페마마스 20%', { rate:.20, minSpend:200000, txnAmountCap:100000, monthlyCount:2, countGroup:'love-family-restaurant', group:'love', membershipDiscountBlocked:true, displayMerchants:['아웃백','파리크라상','카페마마스'], conditionNote:'패밀리 레스토랑 통합 월 2회 · 단품 메뉴만 적용 · 타 쿠폰·통신사 카드와 중복 할인 불가' }),
       b('love-restaurant30', ['bulgogibrothers','jeiljemyunso'], '불고기브라더스·제일제면소 30%', { rate:.30, minSpend:200000, txnAmountCap:100000, monthlyCount:2, countGroup:'love-family-restaurant', group:'love', membershipDiscountBlocked:true, displayMerchants:['불고기브라더스','제일제면소'], conditionNote:'패밀리 레스토랑 통합 월 2회 · 단품 메뉴만 적용 · 타 쿠폰·통신사 카드와 중복 할인 불가' }),
@@ -288,7 +287,7 @@ function defaultBenefitType(id) {
 function b(id, merchants, label, options={}) { return { id, merchants, label, reward:'discount', benefitType:defaultBenefitType(id), ...options }; }
 function mb(id, merchants, label, options={}) { return { id, merchants, label, reward:'discount', provider:'skt', ...options }; }
 
-const initialState = { period, spends:{}, usage:{}, counts:{}, dailyUsage:{}, dailyCounts:{}, carrier:'skt', membershipGrade:'silver', ownedCards:cards.map(card => card.id), favorites:[] };
+const initialState = { period, spends:{}, carrier:'skt', membershipGrade:'silver', ownedCards:cards.map(card => card.id), favorites:[] };
 let state = loadState();
 let lastResults = [];
 let cardPickerQuery = '';
@@ -300,6 +299,10 @@ function loadState() {
     if (!saved) return structuredClone(initialState);
     const savedState = { ...saved };
     delete savedState.membershipMode;
+    delete savedState.usage;
+    delete savedState.counts;
+    delete savedState.dailyUsage;
+    delete savedState.dailyCounts;
     const profile = {
       carrier: saved.carrier === 'none' ? 'none' : 'skt',
       membershipGrade: ['vip','gold','silver','none'].includes(saved.membershipGrade) ? saved.membershipGrade : 'silver',
@@ -318,11 +321,6 @@ function loadState() {
 }
 function saveState() { localStorage.setItem('card-advisor-state-v1', JSON.stringify(state)); }
 function tierValue(tiers, spend) { return [...tiers].reverse().find(([min]) => spend >= min)?.[1] || 0; }
-function usage(id) { return state.usage[id] || 0; }
-function count(id) { return state.counts[id] || 0; }
-function benefitCount(benefit) { return count(benefit.countGroup || benefit.id); }
-function dailyUsage(id) { return state.dailyUsage[`${dayKey}:${id}`] || 0; }
-function dailyCount(id) { return state.dailyCounts[`${dayKey}:${id}`] || 0; }
 function isCardOwned(cardId) { return state.ownedCards.includes(cardId); }
 function isCardEnabled(cardId) { return isCardOwned(cardId); }
 
@@ -375,10 +373,6 @@ function benefitLimit(benefit, tier, property) {
   return tier?.[property] ?? benefit[property];
 }
 
-function benefitUsageKey(benefit, tier) {
-  return tier ? `${benefit.id}:${tier.id}` : benefit.id;
-}
-
 function benefitPlaceLabel(benefit) {
   if (benefit.displayMerchants) return benefit.displayMerchants.join(' · ');
   return benefit.merchants.includes('*')
@@ -390,6 +384,7 @@ function benefitPlaceLabel(benefit) {
 }
 
 function benefitValueLabel(benefit) {
+  if (benefit.valueLabel) return benefit.valueLabel;
   if (benefit.rateTiers) {
     const rates = benefit.rateTiers.map(tier => tier.rate * 100);
     return `${Math.min(...rates)}~${Math.max(...rates)}%`;
@@ -427,11 +422,9 @@ function assessMembershipBenefit(benefit, input) {
   if (benefit.minAmount && input.amount < benefit.minAmount) reasons.push(`최소 결제금액 ${won.format(benefit.minAmount)}원 이상 필요`);
   if (benefit.channel && input.channel !== benefit.channel) reasons.push(`${benefit.channel === 'online' ? '온라인' : '오프라인'} 이용만 적용`);
   if (benefit.excludesEvent && input.eventItem) reasons.push('행사상품은 멤버십 할인 제외');
-  if (benefit.monthlyCount && benefitCount(benefit) >= benefit.monthlyCount) reasons.push('이번 달 이용 횟수 소진');
-  if (benefit.dailyCount && dailyCount(benefit.id) >= benefit.dailyCount) reasons.push('오늘 이용 횟수 소진');
   if (reasons.length) return { benefit, value:0, reasons };
   let value = rawBenefitValue(benefit, input.amount);
-  if (benefit.dailyCap) value = Math.min(value, Math.max(0, benefit.dailyCap - dailyUsage(benefit.id)));
+  if (benefit.dailyCap) value = Math.min(value, benefit.dailyCap);
   if (value <= 0) reasons.push('현재 적용 가능한 혜택 없음');
   return { benefit, value, reasons };
 }
@@ -515,9 +508,6 @@ function assessBenefit(card, benefit, input, { ignorePerformance=false, ignorePe
   if (benefit.domesticOnly && merchants.find(merchant => merchant.id === input.merchant)?.category === '해외') reasons.push('국내 이용에만 적용');
   if (benefit.channel && input.channel !== benefit.channel) reasons.push(`${benefit.channel === 'online' ? '온라인' : '오프라인'} 결제에만 적용`);
   if (benefit.requiresEvent && !input.eventItem) reasons.push('행사 대상 품목 선택 필요');
-  if (benefit.monthlyCount && benefitCount(benefit) >= benefit.monthlyCount) reasons.push('이번 달 이용 횟수 소진');
-  if (benefit.dailyCount && dailyCount(benefit.id) >= benefit.dailyCount) reasons.push('오늘 이용 횟수 소진');
-  if (benefit.specialCount && !benefit.specialCount.includes(benefitCount(benefit) + 1)) reasons.push(`${benefit.specialCount.join('·')}번째 이용에 적용`);
   if (reasons.length) return { benefit, value:0, reasons };
 
   const rate = benefitRate(benefit, input.amount);
@@ -525,18 +515,17 @@ function assessBenefit(card, benefit, input, { ignorePerformance=false, ignorePe
   const txnCap = benefitLimit(benefit, tier, 'txnCap');
   const monthlyCap = benefitLimit(benefit, tier, 'monthlyCap');
   const dailyCap = benefitLimit(benefit, tier, 'dailyCap');
-  const usageKey = benefitUsageKey(benefit, tier);
   let baseAmount = txnAmountCap ? Math.min(input.amount, txnAmountCap) : input.amount;
   let value = benefit.flat ? Math.min(benefit.flat, input.amount) : Math.floor(baseAmount * (rate || 0));
   if (txnCap) value = Math.min(value, txnCap);
-  if (monthlyCap) value = Math.min(value, Math.max(0, monthlyCap - usage(usageKey)));
-  if (dailyCap) value = Math.min(value, Math.max(0, dailyCap - dailyUsage(usageKey)));
+  if (monthlyCap) value = Math.min(value, monthlyCap);
+  if (dailyCap) value = Math.min(value, dailyCap);
   if (benefit.group) {
     const tiers = card.groups[benefit.group];
     const groupCap = tierValue(tiers, calculationSpend);
-    if (groupCap > 0 || !benefit.allowBelowGroup) value = Math.min(value, Math.max(0, groupCap - usage(`${card.id}:group:${benefit.group}`)));
+    if (groupCap > 0 || !benefit.allowBelowGroup) value = Math.min(value, groupCap);
   }
-  if (value <= 0) reasons.push('이번 달 한도 소진');
+  if (value <= 0) reasons.push('현재 적용 가능한 혜택 없음');
   return { benefit, tier, value, reasons };
 }
 
@@ -617,22 +606,6 @@ function inputValues() {
     eventItem:false,
     membershipEligible:false
   };
-}
-
-function membershipResultHtml(assessment, bestCard, stacksWithMembership) {
-  if (!assessment) return '';
-  const { benefit, value, reasons } = assessment;
-  const rewardUnit = '원';
-  const comparison = value > 0 && bestCard?.value > 0
-    ? value > bestCard.value ? '이 결제에서는 멤버십 혜택이 카드 단독 혜택보다 큽니다.' : '아래 카드 단독 혜택도 함께 비교하세요.'
-    : '';
-  const stacking = stacksWithMembership
-    ? '이 카드 혜택과의 중복 적용이 확인됐습니다.'
-    : '중복 가능 여부가 확인된 카드 조합만 합산 추천합니다.';
-  const detail = value > 0
-    ? `${won.format(value)}${rewardUnit} 예상 · ${benefit.conditionNote ? `${benefit.conditionNote} · ` : ''}${stacking}`
-    : `${reasons.join(' · ')}${benefit.conditionNote ? ` · ${benefit.conditionNote}` : ''} · 공식 조건을 확인하세요.`;
-  return `<aside class="membership-callout${value > bestCard?.value ? ' is-best' : ''}"><div><span class="membership-kicker">SKT · ${membershipGradeLabels[state.membershipGrade]}</span><h3>${escapeHtml(membershipLabel(benefit))}</h3><p>${escapeHtml(detail)}${comparison ? ` ${escapeHtml(comparison)}` : ''}</p></div><div class="membership-actions">${value > 0 ? '<button class="button button-membership" id="confirmMembership" type="button">T멤버십 사용했어요</button>' : ''}<a href="${benefit.sourceUrl || membershipSourceUrl}" target="_blank" rel="noreferrer">공식 조건 ↗</a></div></aside>`;
 }
 
 function amountConditionText(benefit) {
@@ -830,11 +803,25 @@ function merchantStrategies(input, merchant) {
 
 function selectMerchantStrategies(strategies, input) {
   const rank = list => [...list].sort((a,b) => (input.amount ? b.value - a.value : b.score - a.score));
-  const now = rank(strategies.filter(strategy => strategy.active))[0];
-  const later = rank(strategies.filter(strategy => !strategy.active))[0];
-  const fallbackNow = rank(strategies.filter(strategy => strategy.active && strategy.fallbackScenario))[0];
-  const fallbackLater = rank(strategies.filter(strategy => !strategy.active && strategy.fallbackScenario))[0];
-  return [...new Map([now, later, fallbackNow, fallbackLater].filter(Boolean).map(strategy => [strategy.key, strategy])).values()];
+  return rank(strategies);
+}
+
+function strategyMembershipBenefit(strategy) {
+  return strategy.membershipBenefit || strategy.membership?.membershipBenefit || null;
+}
+
+function categoryStrategyGroupKey(strategy, input) {
+  const membershipBenefit = strategyMembershipBenefit(strategy);
+  const cardKey = strategy.membershipBenefit
+    ? 'membership-only'
+    : `${strategy.card.id}:${strategy.benefit.id}:${benefitValueLabel(strategy.benefit)}`;
+  const membershipKey = membershipBenefit
+    ? `${benefitValueLabel(membershipBenefit)}:${membershipBenefit.isMaximum ? 'maximum' : 'fixed'}`
+    : 'no-membership';
+  const calculatedKey = input.amount
+    ? `${strategy.value}:${strategy.assessment?.value || 0}:${strategy.membership?.assessment?.value || 0}`
+    : 'amount-unknown';
+  return `${strategy.active}:${strategy.combination ? 'combination' : 'single'}:${strategy.fallbackScenario ? 'fallback' : 'standard'}:${cardKey}:${membershipKey}:${calculatedKey}`;
 }
 
 function groupedStrategies(input) {
@@ -844,32 +831,35 @@ function groupedStrategies(input) {
   if (!input.category) return selected;
   const merged = new Map();
   selected.forEach(strategy => {
-    const groupKey = `${strategy.active}:${strategy.key}:${strategy.scenarioLabel || ''}`;
+    const groupKey = categoryStrategyGroupKey(strategy, input);
     const group = merged.get(groupKey) || { ...strategy, merchants:[] };
-    group.merchants.push(strategy.merchant);
+    if (!group.merchants.some(merchant => merchant.id === strategy.merchant.id)) group.merchants.push(strategy.merchant);
     merged.set(groupKey, group);
   });
-  return [...merged.values()];
+  return [...merged.values()].map(strategy => ({
+    ...strategy,
+    categoryGrouped:true,
+    categoryMembershipGrouped:!!strategyMembershipBenefit(strategy) && strategy.merchants.length > 1
+  }));
 }
 
 function strategyTitle(strategy) {
   return strategy.card.name;
 }
 
-function strategyBenefitText(strategy) {
-  const cardText = strategy.membershipBenefit ? membershipLabel(strategy.membershipBenefit) : cardBenefitDisplayText(strategy.benefit);
-  return cardText;
+function conciseBenefitValue(benefit) {
+  const label = benefitValueLabel(benefit);
+  return benefit.reward === 'point' ? `${label} 적립` : label;
 }
 
 function strategyValueText(strategy, input) {
+  if (strategy.benefit.unsupported) return strategy.benefit.resultText || strategy.benefit.label;
   if (!input.amount) {
     if (strategy.combination) {
-      return `${benefitValueLabel(strategy.membership.membershipBenefit)} + ${benefitValueLabel(strategy.benefit)}`;
+      return `${conciseBenefitValue(strategy.membership.membershipBenefit)} + ${conciseBenefitValue(strategy.benefit)}`;
     }
-    return benefitValueLabel(strategy.benefit);
+    return conciseBenefitValue(strategy.benefit);
   }
-  const cannotCalculate = strategy.benefit.unsupported;
-  if (cannotCalculate) return strategy.benefit.resultText || '자동 계산 불가';
   const unit = !strategy.combination && strategy.benefit.reward === 'point' ? 'P' : '원';
   const maximum = strategy.benefit.isMaximum || (strategy.combination && strategy.membership.membershipBenefit.isMaximum);
   return `${maximum ? '최대 ' : ''}${won.format(strategy.value || 0)}${unit}`;
@@ -883,21 +873,34 @@ function renderUnifiedResults(input) {
   const later = order(strategies.filter(strategy => !strategy.active));
   const row = strategy => {
     const target = strategy.merchants?.map(merchant => merchant.label).join(' · ') || strategy.merchant.label;
-    const targetAndScenario = strategy.scenarioLabel ? `${target} · ${strategy.scenarioLabel}` : target;
+    const targetAndScenario = strategy.scenarioLabel && !strategy.categoryMembershipGrouped ? `${target} · ${strategy.scenarioLabel}` : target;
     const value = strategyValueText(strategy, input);
-    const conditions = [...new Set(strategy.conditions)].join(' · ') || '별도 이용 조건 없음';
+    const groupedConditions = strategy.categoryMembershipGrouped
+      ? [
+          ...(strategy.combination ? strategyConditions(strategy.card, strategy.benefit, input) : []),
+          'T멤버십 브랜드별 대상 상품·이용 횟수·한도는 세부 브랜드 선택 시 확인'
+        ]
+      : strategy.conditions;
+    const conditions = [...new Set(groupedConditions)].join(' · ') || '별도 이용 조건 없음';
     const isMembershipOnly = strategy.card.id === membershipProvider.id;
     const detailAttribute = isMembershipOnly ? 'data-result-membership-detail' : `data-result-card-detail="${escapeHtml(strategy.card.id)}"`;
     const detailLabel = isMembershipOnly ? `${strategy.card.name} 혜택 보기` : `${strategy.card.name} 전체 혜택 보기`;
     const cardTitle = `<button class="strategy-detail-link" type="button" ${detailAttribute} aria-label="${escapeHtml(detailLabel)}"><span>${escapeHtml(strategyTitle(strategy))}</span><span aria-hidden="true">↗</span></button>`;
-    const membershipAddon = strategy.combination ? `<button class="membership-addon" type="button" data-result-membership-detail aria-label="T멤버십 전체 혜택 보기"><span>+ T멤버십</span>${escapeHtml(membershipLabel(strategy.membership.membershipBenefit))}<span class="detail-arrow" aria-hidden="true">↗</span></button>` : '';
+    const rowMembershipBenefit = strategyMembershipBenefit(strategy);
+    const membershipText = strategy.categoryMembershipGrouped
+      ? `${benefitValueLabel(rowMembershipBenefit)} 할인`
+      : membershipLabel(rowMembershipBenefit || {});
+    const membershipAddon = strategy.combination ? `<button class="membership-addon" type="button" data-result-membership-detail aria-label="T멤버십 전체 혜택 보기"><span>+ T멤버십</span>${escapeHtml(membershipText)}<span class="detail-arrow" aria-hidden="true">↗</span></button>` : '';
     const valueBreakdown = strategy.combination && input.amount && !strategy.benefit.unsupported
       ? `<p class="strategy-breakdown">카드 ${won.format(strategy.assessment?.value || 0)}원 + T멤버십 ${won.format(strategy.membership.assessment?.value || 0)}원</p>`
       : '';
     const totalLabel = strategy.combination ? '<span class="strategy-total-label">총 혜택</span>' : '';
-    return `<article class="strategy-row${strategy.combination ? ' is-combination' : ''}"><div class="strategy-main"><span class="strategy-target">${escapeHtml(targetAndScenario)}</span><h3>${cardTitle}</h3><p>${escapeHtml(strategyBenefitText(strategy))}</p>${membershipAddon}${valueBreakdown}</div><strong>${totalLabel}${escapeHtml(value)}</strong><small class="strategy-conditions">${escapeHtml(conditions)}</small></article>`;
+    return `<article class="strategy-row${strategy.combination ? ' is-combination' : ''}"><div class="strategy-main"><span class="strategy-target">${escapeHtml(targetAndScenario)}</span><h3>${cardTitle}</h3>${membershipAddon}${valueBreakdown}</div><strong>${totalLabel}${escapeHtml(value)}</strong><small class="strategy-conditions">${escapeHtml(conditions)}</small></article>`;
   };
-  const section = (title, note, items, empty, type) => `<section class="strategy-section strategy-section-${type}"><div class="strategy-section-heading"><span class="strategy-section-state">${type === 'current' ? '현재 적용' : '현재 적용 불가'}</span><div><h3>${title}</h3><p>${note}</p></div></div>${items.length ? items.map(row).join('') : `<p class="strategy-empty">${empty}</p>`}</section>`;
+  const section = (title, note, items, empty, type) => {
+    const content = items.length ? items.map(row).join('') : `<p class="strategy-empty">${empty}</p>`;
+    return `<section class="strategy-section strategy-section-${type}"><div class="strategy-section-heading"><span class="strategy-section-state">${type === 'current' ? '현재 적용' : '현재 적용 불가'}</span><div><h3>${title}</h3><p>${note}</p></div></div>${content}</section>`;
+  };
   const targetName = input.category || merchants.find(merchant => merchant.id === input.merchant)?.label || '구매처';
   container.innerHTML = `<div class="recommendation strategy-results"><span class="best-label">${escapeHtml(targetName)} · ${input.amount ? `${won.format(input.amount)}원` : '금액 미정'}</span>${section('지금 받을 수 있는 혜택', '현재 전월 실적으로 바로 적용돼요.', now, '현재 설정에서 바로 적용되는 혜택이 없어요.', 'current')} ${section('전월 실적을 채우면 받을 수 있어요', '아래 혜택은 아직 결제에 적용되지 않아요.', later, '추가로 충족할 전월 실적 조건이 없어요.', 'later')}</div>`;
   container.querySelectorAll('[data-result-card-detail]').forEach(button => button.addEventListener('click', () => openCardDetail(button.dataset.resultCardDetail)));
@@ -1292,7 +1295,6 @@ function setup() {
     applyCardSearch();
   });
   document.querySelector('#statusForm').addEventListener('submit', e => { if (e.submitter?.value === 'cancel') return; e.preventDefault(); saveStatus(); document.querySelector('#statusDialog').close(); });
-  document.querySelector('#resetUsage').addEventListener('click', () => { state.usage={}; state.counts={}; state.dailyUsage={}; state.dailyCounts={}; saveState(); showToast('이번 달 혜택 기록을 초기화했어요.'); renderResults(inputValues()); });
   document.querySelector('#toggleFavorite').addEventListener('click', toggleCurrentFavorite);
   document.querySelector('#openMembershipDetail').addEventListener('click', openMembershipDetail);
   document.querySelector('#closeCardDetail').addEventListener('click', () => document.querySelector('#cardDialog').close());

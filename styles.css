@@ -92,8 +92,6 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .button-primary { background: var(--mint); color: var(--navy); }
 .button-primary:hover { filter: brightness(.96); transform: translateY(-1px); }
 .button-quiet { background: var(--navy); color: #fff; }
-.button-danger { background: #fff0f2; color: var(--danger); }
-.button-membership { min-height: 38px; background: #ffeb00; color: #171717; }
 .submit-button { grid-column: 1 / -1; min-height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 1.03rem; }
 .favorites-panel { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
 .favorites-heading { display: flex; align-items: baseline; gap: 12px; }
@@ -112,13 +110,7 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .favorite-toggle { min-height: 40px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: transparent; color: #d9e3e7; font-size: .8rem; font-weight: 800; white-space: nowrap; }
 .favorite-toggle:hover { border-color: var(--mint); color: var(--mint); }
 .favorite-toggle.is-active { border-color: #ffdf61; background: rgba(255,223,97,.12); color: #ffdf61; }
-.membership-callout { margin-top: 26px; padding: 17px; display: grid; gap: 15px; border: 1px solid rgba(255,235,0,.38); border-radius: 16px; background: rgba(255,235,0,.08); }
-.membership-callout.is-best { border-color: #ffeb00; box-shadow: inset 4px 0 0 #ffeb00; }
 .membership-kicker { color: #ffed46; font-size: .75rem; font-weight: 900; letter-spacing: .08em; }
-.membership-callout h3 { margin: 5px 0 6px; color: #fff; font-size: 1rem; line-height: 1.4; }
-.membership-callout p { margin: 0; color: #d5dfe3; font-size: .86rem; line-height: 1.55; }
-.membership-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
-.membership-actions a { color: #ffed46; font-size: .8rem; font-weight: 800; text-decoration: none; }
 .membership-source-note a { color: #785817; font-weight: 850; }
 .recommendation { margin-top: 30px; }
 .best-label { display: inline-flex; gap: 7px; align-items: center; color: var(--mint); font-size: .8rem; font-weight: 850; letter-spacing: .08em; }
@@ -138,7 +130,6 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .amount-guide-lines li { display: grid; gap: 2px; }
 .amount-guide-lines li::before { grid-row: 1 / span 2; }
 .amount-guide-lines small { color: #aebbc3; font-size: .82rem; }
-.confirm-button { width: 100%; min-height: 54px; }
 .alternatives { margin-top: 24px; }
 .alternatives h3 { font-size: .86rem; color: #9fb0ba; margin: 0 0 10px; }
 .alternative { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.1); }
@@ -169,7 +160,6 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .strategy-detail-link span:last-child { color: #91a6b0; font-size: .72rem; }
 .strategy-detail-link:hover, .strategy-detail-link:focus-visible { color: var(--mint); }
 .strategy-detail-link:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; border-radius: 4px; }
-.strategy-row p { margin: 0; color: #dbe5e9; font-size: .9rem; }
 .strategy-row .membership-addon { display: flex; align-items: baseline; gap: 7px; margin-top: 6px; padding: 0; border: 0; background: transparent; color: #ccece2; font-size: .84rem; text-align: left; }
 .strategy-row .membership-addon > span:first-child { flex: 0 0 auto; padding: 2px 7px; border-radius: 999px; background: rgba(88,225,181,.14); color: var(--mint); font-size: .7rem; font-weight: 850; }
 .strategy-row .membership-addon .detail-arrow { color: #91a6b0; font-size: .7rem; }
@@ -186,7 +176,6 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .strategy-section-later .strategy-row.is-combination > strong { color: #8fa39d; }
 .strategy-section-later .strategy-row h3,
 .strategy-section-later .strategy-row > strong { color: #bac5ca; }
-.strategy-section-later .strategy-row p,
 .strategy-section-later .strategy-row .membership-addon { color: #9ba9af; }
 .strategy-section-later .strategy-row small,
 .strategy-section-later .strategy-row .strategy-breakdown,
@@ -253,7 +242,7 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .status-controls { display: grid; gap: 5px; }
 .status-controls label { color: var(--ink-soft); font-size: .75rem; font-weight: 800; }
 .status-controls .no-performance { min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 11px; background: #f0f4f3; color: var(--ink-soft); font-size: .82rem; }
-.dialog-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
 .card-detail-dialog { width: min(820px, calc(100% - 24px)); }
 .card-detail-content { display: grid; gap: 22px; margin-top: 26px; }
 .rule-section h3 { margin: 0 0 12px; font-size: 1rem; }
