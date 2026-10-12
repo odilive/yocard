@@ -2,7 +2,9 @@ const won = new Intl.NumberFormat('ko-KR');
 const today = new Date();
 const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 const guestStorageKey = 'card-advisor-state-v1';
+const syncCodeStorageKey = 'yocard-sync-code-v1';
 const settingsSchemaVersion = 1;
+const syncCodeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const initialState = {
   period,
@@ -18,6 +20,8 @@ let cardPickerQuery = '';
 let cardSearchSubmitted = false;
 let cloudClient = null;
 let cloudUser = null;
+let syncCode = '';
+let syncCodeHash = '';
 let cloudReady = false;
 let cloudSaveTimer = null;
 
@@ -50,7 +54,7 @@ function loadState(storageKey=guestStorageKey) {
   catch { return structuredClone(initialState); }
 }
 
-function currentStorageKey() { return cloudUser ? `${guestStorageKey}:${cloudUser.id}` : guestStorageKey; }
+function currentStorageKey() { return syncCodeHash ? `${guestStorageKey}:sync:${syncCodeHash}` : guestStorageKey; }
 
 function saveState({ skipCloud=false }={}) {
   localStorage.setItem(currentStorageKey(), JSON.stringify(state));
@@ -1105,6 +1109,60 @@ function accountSyncConfigured() {
   return !!(config.url && config.publishableKey && window.supabase?.createClient);
 }
 
+function formatSyncCode(value) {
+  const compact = String(value || '')
+    .toUpperCase()
+    .replace(/[^A-Z2-9]/g, '')
+    .replace(/[IO]/g, '')
+    .slice(0, 16);
+  return compact.match(/.{1,4}/g)?.join('-') || '';
+}
+
+function normalizeSyncCode(value) {
+  const formatted = formatSyncCode(value);
+  return formatted.replaceAll('-', '').length === 16 ? formatted : '';
+}
+
+function generateSyncCode() {
+  const random = new Uint32Array(16);
+  crypto.getRandomValues(random);
+  const compact = [...random].map(value => syncCodeAlphabet[value % syncCodeAlphabet.length]).join('');
+  return formatSyncCode(compact);
+}
+
+async function hashSyncCode(code) {
+  const compact = normalizeSyncCode(code).replaceAll('-', '');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(compact));
+  return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
+async function syncCodeCredentials(code) {
+  const normalized = normalizeSyncCode(code);
+  const compact = normalized.replaceAll('-', '');
+  const hash = await hashSyncCode(normalized);
+  return {
+    hash,
+    email:`sync-${hash.slice(0, 32)}@yocard.invalid`,
+    password:`Yocard!${compact}${hash.slice(0, 8)}`
+  };
+}
+
+async function syncCodeSignupReady() {
+  const config = window.YOCARD_SUPABASE || {};
+  try {
+    const response = await fetch(`${config.url}/auth/v1/settings`, {
+      headers:{ apikey:config.publishableKey }
+    });
+    if (!response.ok) return null;
+    const settings = await response.json();
+    return settings.external?.email === true
+      && settings.mailer_autoconfirm === true
+      && settings.disable_signup !== true;
+  } catch {
+    return null;
+  }
+}
+
 function setAccountSyncStatus(message, isError=false) {
   const status = document.querySelector('#accountSyncStatus');
   if (!status) return;
@@ -1112,8 +1170,8 @@ function setAccountSyncStatus(message, isError=false) {
   status.classList.toggle('is-error', isError);
 }
 
-function setAccountAuthFeedback(message='', isError=false) {
-  const feedback = document.querySelector('#accountAuthFeedback');
+function setAccountSyncFeedback(message='', isError=false) {
+  const feedback = document.querySelector('#accountSyncFeedback');
   if (!feedback) return;
   feedback.textContent = message;
   feedback.hidden = !message;
@@ -1124,31 +1182,37 @@ function renderAccountSync() {
   const signedOut = document.querySelector('#accountSyncSignedOut');
   const signedIn = document.querySelector('#accountSyncSignedIn');
   const description = document.querySelector('#accountSyncDescription');
-  const googleButton = document.querySelector('#googleSignIn');
+  const createButton = document.querySelector('#createSyncCode');
+  const connectButton = document.querySelector('#connectSyncCode');
+  const warning = document.querySelector('#syncCodeWarning');
   if (!signedOut || !signedIn) return;
 
   if (!accountSyncConfigured()) {
     signedOut.hidden = false;
     signedIn.hidden = true;
-    googleButton.disabled = true;
-    description.textContent = 'Supabase 연결 정보를 입력하면 로그인과 설정 동기화를 사용할 수 있습니다.';
+    warning.hidden = true;
+    createButton.disabled = true;
+    connectButton.disabled = true;
+    description.textContent = 'Supabase 연결 정보를 입력하면 설정 동기화를 사용할 수 있습니다.';
     return;
   }
 
-  googleButton.disabled = false;
-  signedOut.hidden = !!cloudUser;
-  signedIn.hidden = !cloudUser;
-  description.textContent = cloudUser
-    ? '이 계정의 설정을 다른 기기에서도 동일하게 사용할 수 있습니다.'
-    : 'Google로 로그인하면 어느 기기에서든 내 카드 설정을 불러올 수 있습니다.';
-  if (cloudUser) {
-    document.querySelector('#accountEmailLabel').textContent = cloudUser.email || '로그인한 계정';
+  createButton.disabled = false;
+  connectButton.disabled = false;
+  signedOut.hidden = !!syncCodeHash;
+  signedIn.hidden = !syncCodeHash;
+  warning.hidden = !syncCodeHash;
+  description.textContent = syncCodeHash
+    ? '이 기기의 설정이 동기화 코드에 연결되어 있습니다.'
+    : '동기화 코드로 카드 설정과 즐겨찾기를 다른 기기에서도 이어서 사용할 수 있습니다.';
+  if (syncCodeHash) {
+    document.querySelector('#syncCodeLabel').textContent = syncCode;
     setAccountSyncStatus(cloudReady ? '동기화 완료' : '설정을 불러오는 중');
   }
 }
 
 async function pushCloudState() {
-  if (!cloudClient || !cloudUser || !cloudReady) return;
+  if (!cloudClient || !cloudUser || !syncCodeHash || !cloudReady) return;
   setAccountSyncStatus('저장 중');
   const { error } = await cloudClient.from('user_settings').upsert({
     user_id:cloudUser.id,
@@ -1160,16 +1224,13 @@ async function pushCloudState() {
 }
 
 function queueCloudSave() {
-  if (!cloudClient || !cloudUser || !cloudReady) return;
+  if (!cloudClient || !cloudUser || !syncCodeHash || !cloudReady) return;
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(pushCloudState, 450);
 }
 
-async function loadCloudState(user) {
-  cloudUser = user;
-  cloudReady = false;
-  renderAccountSync();
-  const userStorageKey = currentStorageKey();
+async function loadCloudState(user, code, hash, { allowCached=false, createIfMissing=false }={}) {
+  const userStorageKey = `${guestStorageKey}:sync:${hash}`;
   const cachedState = localStorage.getItem(userStorageKey) ? loadState(userStorageKey) : null;
   const { data, error } = await cloudClient
     .from('user_settings')
@@ -1178,78 +1239,151 @@ async function loadCloudState(user) {
     .maybeSingle();
 
   if (error) {
-    if (cachedState) {
-      state = cachedState;
-      renderStateFromStorage();
-    }
+    if (!allowCached || !cachedState) return false;
+    cloudUser = user;
+    syncCode = code;
+    syncCodeHash = hash;
+    cloudReady = true;
+    state = cachedState;
+    renderStateFromStorage();
     renderAccountSync();
-    setAccountSyncStatus('불러오기 실패', true);
-    return;
+    setAccountSyncStatus('오프라인 · 이 기기 설정 사용 중', true);
+    return true;
   }
 
-  if (data?.settings) {
-    state = normalizeSavedState(data.settings);
-  } else {
-    state = cachedState || state;
+  if (!data?.settings && !createIfMissing) return false;
+  if (!data?.settings) {
     const { error:insertError } = await cloudClient.from('user_settings').upsert({
       user_id:user.id,
       settings:state,
       schema_version:settingsSchemaVersion,
       updated_at:new Date().toISOString()
     }, { onConflict:'user_id' });
-    if (insertError) {
-      renderAccountSync();
-      setAccountSyncStatus('첫 설정 저장 실패', true);
-      return;
-    }
+    if (insertError) return false;
+  } else {
+    state = normalizeSavedState(data.settings);
   }
 
+  cloudUser = user;
+  syncCode = code;
+  syncCodeHash = hash;
+  localStorage.setItem(syncCodeStorageKey, code);
   cloudReady = true;
   saveState({ skipCloud:true });
   renderStateFromStorage();
   renderAccountSync();
+  return true;
 }
 
-async function applyCloudSession(session) {
-  const user = session?.user || null;
-  if (!user) {
-    const hadCloudUser = !!cloudUser;
-    cloudUser = null;
-    cloudReady = false;
-    clearTimeout(cloudSaveTimer);
-    if (hadCloudUser) {
-      state = loadState(guestStorageKey);
-      renderStateFromStorage();
-    }
-    renderAccountSync();
+async function createSyncProfile() {
+  if (!cloudClient) return;
+  const button = document.querySelector('#createSyncCode');
+  setAccountSyncFeedback();
+  button.disabled = true;
+  const signupReady = await syncCodeSignupReady();
+  if (signupReady !== true) {
+    button.disabled = false;
+    setAccountSyncFeedback(
+      signupReady === false
+        ? '운영 준비가 아직 끝나지 않았어요. Supabase에서 Confirm email을 꺼 주세요.'
+        : '동기화 설정을 확인하지 못했어요. 네트워크 연결을 확인해 주세요.',
+      true
+    );
     return;
   }
-  if (cloudUser?.id === user.id && cloudReady) return;
-  await loadCloudState(user);
+  if (cloudUser) await cloudClient.auth.signOut({ scope:'local' });
+  const code = generateSyncCode();
+  const credentials = await syncCodeCredentials(code);
+  const { data, error } = await cloudClient.auth.signUp({
+    email:credentials.email,
+    password:credentials.password,
+    options:{ data:{ account_type:'sync_code' } }
+  });
+  if (error || !data.session || !data.user) {
+    button.disabled = false;
+    const needsSetup = !error && data.user && !data.session;
+    setAccountSyncFeedback(
+      needsSetup
+        ? 'Supabase에서 이메일 확인을 꺼야 코드를 만들 수 있어요.'
+        : '코드를 만들지 못했어요. 잠시 후 다시 시도해 주세요.',
+      true
+    );
+    return;
+  }
+  const loaded = await loadCloudState(data.user, code, credentials.hash, { createIfMissing:true });
+  button.disabled = false;
+  if (!loaded) {
+    await cloudClient.auth.signOut({ scope:'local' });
+    setAccountSyncFeedback('첫 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.', true);
+    return;
+  }
+  showToast('동기화 코드를 만들었어요.');
 }
 
-async function signInWithGoogle() {
+async function connectSyncProfile() {
   if (!cloudClient) return;
-  const button = document.querySelector('#googleSignIn');
-  setAccountAuthFeedback();
+  const input = document.querySelector('#syncCodeInput');
+  const code = normalizeSyncCode(input.value);
+  if (!code) {
+    setAccountSyncFeedback('16자리 동기화 코드를 확인해 주세요.', true);
+    input.focus();
+    return;
+  }
+  const button = document.querySelector('#connectSyncCode');
+  setAccountSyncFeedback();
   button.disabled = true;
-  const redirectTo = `${window.location.origin}${window.location.pathname}`;
-  const { error } = await cloudClient.auth.signInWithOAuth({
-    provider:'google',
-    options:{ redirectTo }
+  if (cloudUser) await cloudClient.auth.signOut({ scope:'local' });
+  const credentials = await syncCodeCredentials(code);
+  const { data, error } = await cloudClient.auth.signInWithPassword({
+    email:credentials.email,
+    password:credentials.password
   });
-  if (error) {
-    button.disabled = false;
-    setAccountAuthFeedback('Google 로그인을 시작하지 못했어요. 연결 설정을 확인해 주세요.', true);
+  const connected = !error && data.user
+    ? await loadCloudState(data.user, code, credentials.hash)
+    : false;
+  button.disabled = false;
+  if (!connected) {
+    if (data?.session) await cloudClient.auth.signOut({ scope:'local' });
+    setAccountSyncFeedback('일치하는 코드를 찾지 못했어요. 코드를 다시 확인해 주세요.', true);
+    return;
+  }
+  input.value = '';
+  showToast('이 기기를 동기화 코드에 연결했어요.');
+}
+
+async function copySyncProfileCode() {
+  if (!syncCode) return;
+  try {
+    await navigator.clipboard.writeText(syncCode);
+    showToast('동기화 코드를 복사했어요.');
+  } catch {
+    setAccountSyncFeedback(`동기화 코드: ${syncCode}`);
   }
 }
 
-async function signOutAccount() {
-  if (!cloudClient) return;
-  const button = document.querySelector('#signOutAccount');
-  button.disabled = true;
-  await cloudClient.auth.signOut();
-  button.disabled = false;
+async function disconnectSyncProfile() {
+  clearTimeout(cloudSaveTimer);
+  localStorage.setItem(guestStorageKey, JSON.stringify(state));
+  if (cloudClient && cloudUser) await cloudClient.auth.signOut({ scope:'local' });
+  localStorage.removeItem(syncCodeStorageKey);
+  cloudUser = null;
+  syncCode = '';
+  syncCodeHash = '';
+  cloudReady = false;
+  renderAccountSync();
+  setAccountSyncFeedback('이 기기의 연결만 해제했어요. 서버의 설정은 그대로 남아 있습니다.');
+}
+
+async function importLegacyAccountState(user) {
+  const { data, error } = await cloudClient
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (error || !data?.settings) return;
+  state = normalizeSavedState(data.settings);
+  localStorage.setItem(guestStorageKey, JSON.stringify(state));
+  renderStateFromStorage();
 }
 
 async function initCloudSync() {
@@ -1257,17 +1391,43 @@ async function initCloudSync() {
   if (!accountSyncConfigured()) return;
   const config = window.YOCARD_SUPABASE;
   cloudClient = window.supabase.createClient(config.url, config.publishableKey, {
-    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false }
   });
-  const { data, error } = await cloudClient.auth.getSession();
-  if (error) {
-    setAccountSyncStatus('로그인 상태 확인 실패', true);
-  } else {
-    await applyCloudSession(data.session);
+  const storedCode = normalizeSyncCode(localStorage.getItem(syncCodeStorageKey));
+  if (!storedCode) {
+    localStorage.removeItem(syncCodeStorageKey);
+    const { data } = await cloudClient.auth.getSession();
+    if (data.session?.user) {
+      await importLegacyAccountState(data.session.user);
+      await cloudClient.auth.signOut({ scope:'local' });
+    }
+    renderAccountSync();
+    return;
   }
-  cloudClient.auth.onAuthStateChange((_event, session) => {
-    window.setTimeout(() => applyCloudSession(session), 0);
-  });
+  const credentials = await syncCodeCredentials(storedCode);
+  let { data } = await cloudClient.auth.getSession();
+  let session = data.session;
+  if (session?.user?.email !== credentials.email) {
+    if (session) await cloudClient.auth.signOut({ scope:'local' });
+    const result = await cloudClient.auth.signInWithPassword({
+      email:credentials.email,
+      password:credentials.password
+    });
+    session = result.data.session;
+  }
+  const connected = session?.user
+    ? await loadCloudState(session.user, storedCode, credentials.hash, { allowCached:true })
+    : false;
+  if (!connected) {
+    if (session) await cloudClient.auth.signOut({ scope:'local' });
+    localStorage.removeItem(syncCodeStorageKey);
+    cloudUser = null;
+    syncCode = '';
+    syncCodeHash = '';
+    cloudReady = false;
+    renderAccountSync();
+    setAccountSyncFeedback('저장된 동기화 코드의 설정을 찾지 못했어요. 다시 연결해 주세요.', true);
+  }
 }
 
 function showToast(message) {
@@ -1293,8 +1453,19 @@ function setup() {
   document.querySelector('#merchantCategory').addEventListener('change', () => { renderMerchantOptions(); renderResults(inputValues()); });
   document.querySelector('#merchant').addEventListener('change', () => { updateConditional(); renderResults(inputValues()); });
   document.querySelector('#openStatus').addEventListener('click', () => { renderStatusForm(); const dialog = document.querySelector('#statusDialog'); dialog.showModal(); dialog.querySelector('.dialog-card').scrollTop = 0; });
-  document.querySelector('#googleSignIn').addEventListener('click', signInWithGoogle);
-  document.querySelector('#signOutAccount').addEventListener('click', signOutAccount);
+  document.querySelector('#createSyncCode').addEventListener('click', createSyncProfile);
+  document.querySelector('#connectSyncCode').addEventListener('click', connectSyncProfile);
+  document.querySelector('#copySyncCode').addEventListener('click', copySyncProfileCode);
+  document.querySelector('#disconnectSyncCode').addEventListener('click', disconnectSyncProfile);
+  document.querySelector('#syncCodeInput').addEventListener('input', event => {
+    event.currentTarget.value = formatSyncCode(event.currentTarget.value);
+    setAccountSyncFeedback();
+  });
+  document.querySelector('#syncCodeInput').addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    connectSyncProfile();
+  });
   document.querySelector('#applyCardSearch').addEventListener('click', applyCardSearch);
   document.querySelector('#cardSearch').addEventListener('input', event => {
     if (event.currentTarget.value.trim()) return;

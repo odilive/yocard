@@ -99,24 +99,31 @@
       </div>
       <section class="account-sync" id="accountSync" aria-labelledby="accountSyncTitle">
         <div class="account-sync-copy">
-          <h3 id="accountSyncTitle">계정</h3>
-          <p id="accountSyncDescription">로그인하면 어느 기기에서든 내 카드 설정을 불러올 수 있습니다.</p>
+          <h3 id="accountSyncTitle">설정 동기화</h3>
+          <p id="accountSyncDescription">동기화 코드로 카드 설정과 즐겨찾기를 다른 기기에서도 이어서 사용할 수 있습니다.</p>
         </div>
         <div class="account-sync-signed-out" id="accountSyncSignedOut">
-          <button class="google-signin-button" id="googleSignIn" type="button">
-            <span class="google-signin-mark" aria-hidden="true">G</span>
-            <span>Google로 계속하기</span>
-          </button>
-          <p class="account-auth-note">로그인하지 않아도 이 기기에서는 그대로 사용할 수 있습니다.</p>
-        </div>
-        <p class="account-auth-feedback" id="accountAuthFeedback" role="status" aria-live="polite" hidden></p>
-        <div class="account-sync-signed-in" id="accountSyncSignedIn" hidden>
-          <div>
-            <strong id="accountEmailLabel"></strong>
-            <span id="accountSyncStatus">동기화 완료</span>
+          <button class="sync-code-create" id="createSyncCode" type="button">새 동기화 코드 만들기</button>
+          <div class="sync-code-divider"><span>또는</span></div>
+          <div class="sync-code-entry">
+            <input id="syncCodeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="19" aria-label="동기화 코드" placeholder="기존 코드 입력">
+            <button id="connectSyncCode" type="button">연결</button>
           </div>
-          <button id="signOutAccount" type="button">로그아웃</button>
+          <p class="account-auth-note">처음이면 새 코드를 만들고, 다른 기기에서는 같은 코드를 입력하세요.</p>
         </div>
+        <p class="account-auth-feedback" id="accountSyncFeedback" role="status" aria-live="polite" hidden></p>
+        <div class="account-sync-signed-in" id="accountSyncSignedIn" hidden>
+          <div class="sync-code-connected-copy">
+            <span>내 동기화 코드</span>
+            <strong id="syncCodeLabel"></strong>
+            <small id="accountSyncStatus">동기화 완료</small>
+          </div>
+          <div class="sync-code-connected-actions">
+            <button id="copySyncCode" type="button">코드 복사</button>
+            <button id="disconnectSyncCode" type="button">이 기기 연결 해제</button>
+          </div>
+        </div>
+        <p class="sync-code-warning" id="syncCodeWarning" hidden>이 코드를 아는 사람은 설정을 불러올 수 있으니 다른 사람에게 공개하지 마세요.</p>
       </section>
       <section class="card-picker" id="cardPicker" aria-label="카드 추가">
         <div class="card-picker-tools">
