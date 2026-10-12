@@ -8,11 +8,11 @@ const syncCodeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const initialState = {
   period,
-  spends:{ hana:100000 },
-  carrier:'skt',
-  membershipGrade:'silver',
-  ownedCards:[...defaultOwnedCardIds],
-  favorites:['category:편의점','category:온라인쇼핑']
+  spends:{},
+  carrier:'none',
+  membershipGrade:'none',
+  ownedCards:[],
+  favorites:[]
 };
 let state = loadState();
 let lastResults = [];
@@ -34,11 +34,13 @@ function normalizeSavedState(saved) {
   delete savedState.dailyUsage;
   delete savedState.dailyCounts;
   const profile = {
-    carrier: saved.carrier === 'none' ? 'none' : 'skt',
-    membershipGrade: ['vip','gold','silver','none'].includes(saved.membershipGrade) ? saved.membershipGrade : 'silver',
+    carrier: saved.carrier === 'skt' ? 'skt' : 'none',
+    membershipGrade: ['vip','gold','silver','none'].includes(saved.membershipGrade) ? saved.membershipGrade : 'none',
     ownedCards: Array.isArray(saved.ownedCards)
       ? [...new Set(saved.ownedCards)].filter(cardId => cards.some(card => card.id === cardId))
-      : cards.filter(card => saved.cardEnabled?.[card.id] !== false).map(card => card.id),
+      : saved.cardEnabled && typeof saved.cardEnabled === 'object'
+        ? cards.filter(card => saved.cardEnabled[card.id] !== false).map(card => card.id)
+        : [],
     favorites: Array.isArray(saved.favorites) ? [...new Set(saved.favorites.flatMap(key => {
       if (key === 'category:교통·주유') return ['category:교통','category:주유·충전'];
       if (key === 'category:교육·서점') return ['category:교육','category:서점'];
@@ -722,6 +724,11 @@ function renderUnifiedResults(input) {
 
 function renderResults(input) {
   lastResults = [];
+  if (!input.category && !input.merchant) {
+    document.querySelector('#results').innerHTML = '<div class="result-start"><strong>구매처를 선택해 주세요.</strong><p>카테고리와 세부 브랜드를 고르면 받을 수 있는 혜택을 비교해 드려요.</p></div>';
+    updateFavoriteToggle();
+    return;
+  }
   renderUnifiedResults(input);
   updateFavoriteToggle();
 }
@@ -887,7 +894,7 @@ function ownedCardIdsInForm() {
 
 function ensureStatusEmptyMessage() {
   const list = document.querySelector('#statusList');
-  if (!list.querySelector('[data-owned-card]')) list.innerHTML = '<p class="status-empty">보유 카드가 없어요. 위의 카드 추가 버튼에서 카드를 선택해 주세요.</p>';
+  if (!list.querySelector('[data-owned-card]')) list.innerHTML = '<p class="status-empty">아직 추가한 카드가 없어요. 위 검색창에서 보유 카드를 찾아 추가해 주세요.</p>';
 }
 
 function bindStatusCardRow(row) {
@@ -952,8 +959,8 @@ function applyCardSearch() {
 }
 
 function renderStatusForm() {
-  document.querySelector('#carrier').value = state.carrier || 'unset';
-  document.querySelector('#membershipGrade').value = state.membershipGrade || 'silver';
+  document.querySelector('#carrier').value = state.carrier || 'none';
+  document.querySelector('#membershipGrade').value = state.membershipGrade || 'none';
   const ownedCards = cards.filter(card => isCardOwned(card.id));
   const list = document.querySelector('#statusList');
   list.innerHTML = ownedCards.map(card => statusCardRow(card)).join('');
@@ -998,7 +1005,7 @@ function renderMerchantOptions() {
   const categorySelect = document.querySelector('#merchantCategory');
   const merchantSelect = document.querySelector('#merchant');
   const previousCategory = categorySelect.value;
-  const previousMerchant = merchantSelect.value || (!merchantSelect.options.length ? 'starbucks' : '');
+  const previousMerchant = merchantSelect.value;
   const available = merchants.filter(merchantAvailableForSelection);
   const groups = Object.groupBy ? Object.groupBy(available, merchant => merchant.category) : available.reduce((all, merchant) => ((all[merchant.category] ||= []).push(merchant), all), {});
   const categories = merchantCategoryOrder.filter(category => groups[category]);
@@ -1007,11 +1014,14 @@ function renderMerchantOptions() {
     ? previousCategory
     : groups[merchantCategory]
       ? merchantCategory
-      : groups['카페'] ? '카페' : categories[0] || '';
-  categorySelect.innerHTML = categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('');
+      : '';
+  categorySelect.innerHTML = `<option value="">카테고리를 선택하세요</option>${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('')}`;
   categorySelect.value = selectedCategory;
   const categoryMerchants = groups[selectedCategory] || [];
-  merchantSelect.innerHTML = `<option value="">${escapeHtml(selectedCategory)} 전체</option>${categoryMerchants.map(merchant => `<option value="${merchant.id}">${escapeHtml(merchant.label)}</option>`).join('')}`;
+  merchantSelect.disabled = !selectedCategory;
+  merchantSelect.innerHTML = selectedCategory
+    ? `<option value="">${escapeHtml(selectedCategory)} 전체</option>${categoryMerchants.map(merchant => `<option value="${merchant.id}">${escapeHtml(merchant.label)}</option>`).join('')}`
+    : '<option value="">카테고리를 먼저 선택하세요</option>';
   merchantSelect.value = categoryMerchants.some(merchant => merchant.id === previousMerchant) ? previousMerchant : '';
   updateConditional();
 }
@@ -1057,7 +1067,10 @@ function selectFavorite(key) {
 function updateFavoriteToggle() {
   const button = document.querySelector('#toggleFavorite');
   if (!button) return;
-  const active = state.favorites.includes(currentFavoriteKey());
+  const key = currentFavoriteKey();
+  const available = validFavorite(key);
+  const active = available && state.favorites.includes(key);
+  button.hidden = !available;
   button.classList.toggle('is-active', active);
   button.setAttribute('aria-pressed', String(active));
   button.innerHTML = `<span aria-hidden="true">${active ? '★' : '☆'}</span><span>${active ? '즐겨찾기됨' : '즐겨찾기'}</span>`;

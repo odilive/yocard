@@ -257,9 +257,8 @@ const cards = [
   }
 ];
 
-const defaultOwnedCardIds = [
-  'nori','soltravel','hana','deepdream','kakaobank','kakaopay','simple','samsungmoney','love'
-];
+// 신규 방문자는 보유 카드 없이 시작한다.
+const defaultOwnedCardIds = [];
 
 const cardSourceUrls = {
   'woori-point': 'https://pc.wooricard.com/dcpc/yh1/crd/crd01/H1CRD201S00.do?recomNo=834629',

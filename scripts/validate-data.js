@@ -90,6 +90,9 @@ const appContext = {
 };
 vm.runInNewContext(dataSource + '\n' + appSource + `
   const __input = { merchant:'starbucks', amount:10000, payment:'auto', channel:'offline', eventItem:false, membershipEligible:false };
+  const __emptyResults = calculate(__input);
+  state.ownedCards.push('hana', 'nori');
+  state.spends.hana = 100000;
   const __results = calculate(__input);
   state.ownedCards.push('coupang-wow-card', 'gaon-biz');
   state.spends['gaon-biz'] = 500000;
@@ -98,7 +101,7 @@ vm.runInNewContext(dataSource + '\n' + appSource + `
   const __gaonCard = cards.find(card => card.id === 'gaon-biz');
   const __gaonBusiness = __gaonCard.benefits.find(benefit => benefit.id === 'gaon-business');
   globalThis.__yocardAppProbe = {
-    defaultCardCount:__results.length,
+    defaultCardCount:__emptyResults.length,
     hanaValue:__results.find(result => result.card.id === 'hana')?.value,
     noriValue:__results.find(result => result.card.id === 'nori')?.value,
     coupangValue:__calculateCard('coupang-wow-card', 'coupang', 100000, 'online'),
@@ -114,7 +117,7 @@ vm.runInNewContext(dataSource + '\n' + appSource + `
 `, appContext, { filename:'yocard-app.js' });
 
 const probe = appContext.__yocardAppProbe;
-if (probe.defaultCardCount !== defaultOwnedCardIds.length) errors.push(`추천 계산: 기본 보유 카드 ${defaultOwnedCardIds.length}개 중 ${probe.defaultCardCount}개만 계산됐습니다.`);
+if (probe.defaultCardCount !== 0) errors.push(`추천 계산: 신규 사용자에게 기본 카드 결과가 ${probe.defaultCardCount}개 노출됩니다.`);
 if (probe.hanaValue !== 2000) errors.push(`추천 계산: 스타벅스 10,000원 나라사랑카드 예상값이 ${probe.hanaValue}원입니다.`);
 if (probe.noriValue !== 1000) errors.push(`추천 계산: 스타벅스 10,000원 노리2 예상값이 ${probe.noriValue}원입니다.`);
 if (probe.coupangValue !== probe.coupangExpected) errors.push(`추천 계산: 쿠팡 100,000원 쿠팡 와우 카드 예상값이 ${probe.coupangValue}원입니다.`);

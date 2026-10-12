@@ -108,8 +108,12 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .result-heading { flex-wrap: wrap; }
 .close-button { width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.2); border-radius: 50%; background: transparent; color: inherit; font-weight: 850; }
 .favorite-toggle { min-height: 40px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: transparent; color: #d9e3e7; font-size: .8rem; font-weight: 800; white-space: nowrap; }
+.favorite-toggle[hidden] { display: none; }
 .favorite-toggle:hover { border-color: var(--mint); color: var(--mint); }
 .favorite-toggle.is-active { border-color: #ffdf61; background: rgba(255,223,97,.12); color: #ffdf61; }
+.result-start { margin-top: 30px; padding: 22px 0 4px; border-top: 1px solid rgba(255,255,255,.12); }
+.result-start strong { display: block; color: #fff; font-size: 1rem; }
+.result-start p { margin: 7px 0 0; color: #9fb0b8; font-size: .84rem; line-height: 1.55; }
 .membership-kicker { color: #ffed46; font-size: .75rem; font-weight: 900; letter-spacing: .08em; }
 .membership-source-note a { color: #785817; font-weight: 850; }
 .recommendation { margin-top: 30px; }
@@ -232,7 +236,11 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .status-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 26px; }
 .status-section-head > div { display: grid; gap: 4px; }
 .status-section-head span { color: var(--ink-soft); font-size: .78rem; }
-.card-picker { margin-top: 12px; }
+.card-picker { margin-top: 18px; padding: 16px; border: 1px solid #cfe1dc; border-radius: 15px; background: #f5faf8; }
+.card-picker-heading { margin-bottom: 12px; }
+.card-picker-heading h3 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: .96rem; }
+.card-picker-heading h3 span { display: inline-grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; background: var(--navy); color: #fff; font-size: .9rem; line-height: 1; }
+.card-picker-heading p { margin: 5px 0 0; color: var(--ink-soft); font-size: .77rem; line-height: 1.45; }
 .card-picker-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
 .card-search { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .card-search input { width: 100%; min-height: 43px; padding: 0 13px; border: 1px solid #bed5ce; border-right: 0; border-radius: 11px 0 0 11px; background: #fff; color: var(--ink); }
