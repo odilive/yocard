@@ -5,14 +5,15 @@ const guestStorageKey = 'card-advisor-state-v1';
 const syncCodeStorageKey = 'yocard-sync-code-v1';
 const settingsSchemaVersion = 1;
 const syncCodeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const isFirstVisit = !localStorage.getItem(guestStorageKey) && !localStorage.getItem(syncCodeStorageKey);
 
 const initialState = {
   period,
-  spends:{},
-  carrier:'none',
-  membershipGrade:'none',
-  ownedCards:[],
-  favorites:[]
+  spends:{ nori:0, hana:100000, kakaobank:300000 },
+  carrier:'skt',
+  membershipGrade:'silver',
+  ownedCards:[...defaultOwnedCardIds],
+  favorites:['category:편의점','category:온라인쇼핑','category:기타 가맹점']
 };
 let state = loadState();
 let lastResults = [];
@@ -382,7 +383,7 @@ function shortSpend(amount) {
   return amount >= 10000 && amount % 10000 === 0 ? `${won.format(amount / 10000)}만원` : `${won.format(amount)}원`;
 }
 
-function paymentLabel(id) { return ({card:'일반 카드',kbpay:'KB Pay',kakaopay:'카카오페이',samsungmoney:'삼성월렛 머니',autopay:'자동이체','woori-point-pay':'네이버페이·카카오페이·PAYCO·SSGPAY'})[id] || id; }
+function paymentLabel(id) { return ({card:'일반 카드',kbpay:'KB Pay',nhpay:'NH pay',kakaopay:'카카오페이',samsungmoney:'삼성월렛 머니',autopay:'자동이체','woori-point-pay':'네이버페이·카카오페이·PAYCO·SSGPAY','kbank-soho-online-pay':'카카오페이·네이버페이 등 온라인 간편결제'})[id] || id; }
 function channelForMerchant(merchantId) {
   if (merchantId === 'other-online') return 'online';
   if (merchantId === 'other-offline') return 'offline';
@@ -733,15 +734,17 @@ function renderResults(input) {
   updateFavoriteToggle();
 }
 
-function renderGroupLimitTable(card, groupId, tiers) {
-  const extraColumns = card.groupCapColumns?.[groupId] || [];
-  const columns = [
-    { label:card.groupLabels?.[groupId] || '월 통합 한도', tiers },
-    ...extraColumns
-  ];
+function renderGroupLimitColumns(columns) {
   const thresholds = [...new Set(columns.flatMap(column => column.tiers.map(([spend]) => spend)))].sort((a, b) => a - b);
-  const tableClass = extraColumns.length ? 'tier-table tier-table-wide' : 'tier-table';
-  return `<div class="tier-table-wrap"><table class="${tableClass}"><thead><tr><th>전월 실적</th>${columns.map(column => `<th>${escapeHtml(column.label)}</th>`).join('')}</tr></thead><tbody>${thresholds.map(spend => `<tr><td>${won.format(spend)}원 이상</td>${columns.map(column => `<td>${won.format(tierValue(column.tiers, spend))}원</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const tableClass = columns.length > 1 ? 'tier-table tier-table-wide' : 'tier-table';
+  return `<div class="tier-table-wrap"><table class="${tableClass}"><thead><tr><th>전월 실적</th>${columns.map(column => `<th>${escapeHtml(column.label)}</th>`).join('')}</tr></thead><tbody>${thresholds.map(spend => `<tr><td>${spend ? `${won.format(spend)}원 이상` : '조건 없음'}</td>${columns.map(column => `<td>${won.format(tierValue(column.tiers, spend))}원</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+function renderGroupLimitTable(card, groupId, tiers) {
+  return renderGroupLimitColumns([
+    { label:card.groupLabels?.[groupId] || '월 통합 한도', tiers },
+    ...(card.groupCapColumns?.[groupId] || [])
+  ]);
 }
 
 function openCardDetail(cardId) {
@@ -754,7 +757,10 @@ function openCardDetail(cardId) {
     .join(' · ');
 
   const groupEntries = Object.entries(card.groups || {});
-  const groupHtml = groupEntries.length ? `<section class="rule-section"><h3>월 한도</h3>${groupEntries.map(([groupId, tiers]) => renderGroupLimitTable(card, groupId, tiers)).join('')}</section>` : '';
+  const groupTables = card.combineGroupLimitTables
+    ? renderGroupLimitColumns(groupEntries.map(([groupId, tiers]) => ({ label:card.groupLabels?.[groupId] || '월 통합 한도', tiers })))
+    : groupEntries.map(([groupId, tiers]) => renderGroupLimitTable(card, groupId, tiers)).join('');
+  const groupHtml = groupEntries.length ? `<section class="rule-section"><h3>월 한도</h3>${groupTables}</section>` : '';
   const detailBenefits = card.benefits.filter(benefit => !benefit.hideInDetail);
   const benefitsHtml = detailBenefits.map(benefit => {
     const rawTags = benefit.detailTags || describeBenefit(benefit, card);
@@ -869,7 +875,7 @@ function describeBenefit(benefit, card) {
 function performanceThresholds(card) {
   const values = new Set();
   card.benefits.forEach(benefit => { if (benefit.minSpend) values.add(benefit.minSpend); });
-  Object.values(card.groups || {}).flat().forEach(([minimum]) => values.add(minimum));
+  Object.values(card.groups || {}).flat().forEach(([minimum]) => { if (minimum > 0) values.add(minimum); });
   return [...values].sort((a, b) => a - b);
 }
 
@@ -1466,6 +1472,11 @@ function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, c => ({'&'
 function setup() {
   document.querySelector('#periodLabel').textContent = `${today.getFullYear()}년 ${today.getMonth()+1}월`;
   renderMerchantOptions();
+  if (isFirstVisit) {
+    document.querySelector('#merchantCategory').value = '카페';
+    renderMerchantOptions();
+    document.querySelector('#merchant').value = 'starbucks';
+  }
   const amountInput = document.querySelector('#amount');
   bindMoneyInput(amountInput);
   document.querySelectorAll('[data-amount-add]').forEach(button => button.addEventListener('click', () => {

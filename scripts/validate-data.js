@@ -90,18 +90,36 @@ const appContext = {
 };
 vm.runInNewContext(dataSource + '\n' + appSource + `
   const __input = { merchant:'starbucks', amount:10000, payment:'auto', channel:'offline', eventItem:false, membershipEligible:false };
-  const __emptyResults = calculate(__input);
+  const __defaultResults = calculate(__input);
+  const __defaultOwnedCards = [...state.ownedCards];
+  const __defaultSpends = { ...state.spends };
+  const __defaultCarrier = state.carrier;
+  const __defaultMembershipGrade = state.membershipGrade;
+  const __defaultFavorites = [...state.favorites];
   state.ownedCards.push('hana', 'nori');
   state.spends.hana = 100000;
   const __results = calculate(__input);
   state.ownedCards.push('coupang-wow-card', 'gaon-biz');
   state.spends['gaon-biz'] = 500000;
+  state.ownedCards.push('nh-flex', 'starbucks-hyundai', 'kakaobank-soho');
+  state.spends['nh-flex'] = 300000;
+  state.spends['starbucks-hyundai'] = 300000;
   const __calculateCard = (cardId, merchant, amount, channel) => calculate({ merchant, amount, payment:'auto', channel, eventItem:false, membershipEligible:false }).find(result => result.card.id === cardId)?.value;
   const __coupangBenefit = cards.find(card => card.id === 'coupang-wow-card').benefits.find(benefit => benefit.id === 'coupang-wow-core');
   const __gaonCard = cards.find(card => card.id === 'gaon-biz');
   const __gaonBusiness = __gaonCard.benefits.find(benefit => benefit.id === 'gaon-business');
+  const __starbucksHyundai = cards.find(card => card.id === 'starbucks-hyundai');
+  const __sohoCard = cards.find(card => card.id === 'kakaobank-soho');
+  const __sohoTelecom = __sohoCard.benefits.find(benefit => benefit.id === 'kbank-soho-telecom');
+  const __nhFlexCard = cards.find(card => card.id === 'nh-flex');
+  const __nhFlexLimitHtml = renderGroupLimitColumns(Object.entries(__nhFlexCard.groups).map(([groupId, tiers]) => ({ label:__nhFlexCard.groupLabels[groupId], tiers })));
   globalThis.__yocardAppProbe = {
-    defaultCardCount:__emptyResults.length,
+    defaultCardCount:__defaultResults.length,
+    defaultOwnedCards:__defaultOwnedCards,
+    defaultSpends:__defaultSpends,
+    defaultCarrier:__defaultCarrier,
+    defaultMembershipGrade:__defaultMembershipGrade,
+    defaultFavorites:__defaultFavorites,
     hanaValue:__results.find(result => result.card.id === 'hana')?.value,
     noriValue:__results.find(result => result.card.id === 'nori')?.value,
     coupangValue:__calculateCard('coupang-wow-card', 'coupang', 100000, 'online'),
@@ -110,6 +128,16 @@ vm.runInNewContext(dataSource + '\n' + appSource + `
     gaonOnline600k:__calculateCard('gaon-biz', 'naverplus', 600000, 'online'),
     gaonOnline1m:__calculateCard('gaon-biz', 'naverplus', 1000000, 'online'),
     gaonOnline10m:__calculateCard('gaon-biz', 'naverplus', 10000000, 'online'),
+    nhStarbucks:__calculateCard('nh-flex', 'starbucks', 12000, 'offline'),
+    nhStore:__calculateCard('nh-flex', 'cu', 10000, 'offline'),
+    sohoFood:__calculateCard('kakaobank-soho', 'starbucks', 10000, 'offline'),
+    sohoGas:__calculateCard('kakaobank-soho', 'gas', 100000, 'offline'),
+    starbucksHyundaiText:__starbucksHyundai.benefits[0].resultText,
+    sohoPerformanceThresholds:performanceThresholds(__sohoCard),
+    sohoBaseCap:tierValue(__sohoCard.groups.kbankSoho, 0),
+    sohoTelecomTitle:cardBenefitDisplayText(__sohoTelecom),
+    nhFlexLimitHeaderCount:(__nhFlexLimitHtml.match(/전월 실적/g) || []).length,
+    nhFlexLimitColumnCount:(__nhFlexLimitHtml.match(/통합 월 한도/g) || []).length,
     coupangTitle:benefitDisplayTitle(__coupangBenefit),
     gaonTitle:benefitDisplayTitle(__gaonBusiness),
     gaonTags:describeBenefit(__gaonBusiness, __gaonCard)
@@ -117,7 +145,11 @@ vm.runInNewContext(dataSource + '\n' + appSource + `
 `, appContext, { filename:'yocard-app.js' });
 
 const probe = appContext.__yocardAppProbe;
-if (probe.defaultCardCount !== 0) errors.push(`추천 계산: 신규 사용자에게 기본 카드 결과가 ${probe.defaultCardCount}개 노출됩니다.`);
+if (probe.defaultCardCount < 1) errors.push('추천 계산: 신규 사용자 예시 카드 결과가 노출되지 않습니다.');
+if (probe.defaultOwnedCards.join(',') !== defaultOwnedCardIds.join(',')) errors.push(`기본 보유 카드: 초기 상태가 기본 카드 목록과 다릅니다: ${probe.defaultOwnedCards.join(',')}`);
+if (probe.defaultSpends.nori !== 0 || probe.defaultSpends.hana !== 100000 || probe.defaultSpends.kakaobank !== 300000) errors.push(`기본 전월 실적: ${JSON.stringify(probe.defaultSpends)}`);
+if (probe.defaultCarrier !== 'skt' || probe.defaultMembershipGrade !== 'silver') errors.push(`기본 멤버십: ${probe.defaultCarrier} ${probe.defaultMembershipGrade}`);
+if (probe.defaultFavorites.join(',') !== 'category:편의점,category:온라인쇼핑,category:기타 가맹점') errors.push(`기본 즐겨찾기: ${probe.defaultFavorites.join(',')}`);
 if (probe.hanaValue !== 2000) errors.push(`추천 계산: 스타벅스 10,000원 나라사랑카드 예상값이 ${probe.hanaValue}원입니다.`);
 if (probe.noriValue !== 1000) errors.push(`추천 계산: 스타벅스 10,000원 노리2 예상값이 ${probe.noriValue}원입니다.`);
 if (probe.coupangValue !== probe.coupangExpected) errors.push(`추천 계산: 쿠팡 100,000원 쿠팡 와우 카드 예상값이 ${probe.coupangValue}원입니다.`);
@@ -125,6 +157,16 @@ if (probe.gaonOnline300k !== 2700) errors.push(`추천 계산: 온라인 300,000
 if (probe.gaonOnline600k !== 5400) errors.push(`추천 계산: 온라인 600,000원 가온 Biz카드 예상값이 ${probe.gaonOnline600k}원입니다.`);
 if (probe.gaonOnline1m !== 13000) errors.push(`추천 계산: 온라인 1,000,000원 가온 Biz카드 예상값이 ${probe.gaonOnline1m}원입니다.`);
 if (probe.gaonOnline10m !== 80000) errors.push(`추천 계산: 온라인 10,000,000원 가온 Biz카드 예상값이 ${probe.gaonOnline10m}원입니다.`);
+if (probe.nhStarbucks !== 5000) errors.push(`추천 계산: 스타벅스 12,000원 올바른 FLEX 카드 예상값이 ${probe.nhStarbucks}원입니다.`);
+if (probe.nhStore !== 500) errors.push(`추천 계산: CU 10,000원 올바른 FLEX 카드 예상값이 ${probe.nhStore}원입니다.`);
+if (probe.sohoFood !== 30) errors.push(`추천 계산: 스타벅스 10,000원 카카오뱅크 개인사업자 체크카드 예상값이 ${probe.sohoFood}원입니다.`);
+if (probe.sohoGas !== 3000) errors.push(`추천 계산: 주유 100,000원 카카오뱅크 개인사업자 체크카드 예상값이 ${probe.sohoGas}원입니다.`);
+if (!probe.starbucksHyundaiText.includes('30,000원당 스타벅스 별 1개')) errors.push(`상세 표시: 스타벅스 현대카드 적립 문구가 올바르지 않습니다: ${probe.starbucksHyundaiText}`);
+if (probe.sohoPerformanceThresholds.join(',') !== '500000,1000000') errors.push(`전월 실적: 카카오뱅크 개인사업자 체크카드 구간이 올바르지 않습니다: ${probe.sohoPerformanceThresholds.join(',')}`);
+if (probe.sohoBaseCap !== 10000) errors.push(`월 한도: 카카오뱅크 개인사업자 체크카드 기본 한도가 ${probe.sohoBaseCap}원입니다.`);
+if (!['휴대전화','유선전화','IPTV','인터넷'].every(label => probe.sohoTelecomTitle.includes(label))) errors.push(`상세 표시: 카카오뱅크 개인사업자 체크카드 통신 범위가 부족합니다: ${probe.sohoTelecomTitle}`);
+if (probe.nhFlexLimitHeaderCount !== 1) errors.push(`월 한도 표: 올바른 FLEX 카드 전월 실적 제목이 ${probe.nhFlexLimitHeaderCount}번 표시됩니다.`);
+if (probe.nhFlexLimitColumnCount !== 3) errors.push(`월 한도 표: 올바른 FLEX 카드 통합 한도 열이 ${probe.nhFlexLimitColumnCount}개입니다.`);
 if (!probe.coupangTitle.includes(probe.coupangExpected === 4000 ? '4%' : '2%')) errors.push(`상세 표시: 쿠팡 와우 카드 제목이 현재 적립률과 다릅니다: ${probe.coupangTitle}`);
 if (!probe.gaonTitle.includes('0.9%')) errors.push(`상세 표시: 가온 Biz카드 사업지원 제목이 올바르지 않습니다: ${probe.gaonTitle}`);
 if (!probe.gaonTags.some(tag => tag.includes('추가 적립 월 한도 50,000원'))) errors.push('상세 표시: 가온 Biz카드 추가 적립 한도가 없습니다.');
