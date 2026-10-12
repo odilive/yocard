@@ -1203,8 +1203,8 @@ function renderAccountSync() {
   signedIn.hidden = !syncCodeHash;
   warning.hidden = !syncCodeHash;
   description.textContent = syncCodeHash
-    ? '이 기기의 설정이 동기화 코드에 연결되어 있습니다.'
-    : '동기화 코드로 카드 설정과 즐겨찾기를 다른 기기에서도 이어서 사용할 수 있습니다.';
+    ? '이 기기의 설정을 다른 기기와 함께 사용 중입니다.'
+    : '다른 기기에서 사용하던 설정을 불러올 수 있습니다.';
   if (syncCodeHash) {
     document.querySelector('#syncCodeLabel').textContent = syncCode;
     setAccountSyncStatus(cloudReady ? '동기화 완료' : '설정을 불러오는 중');

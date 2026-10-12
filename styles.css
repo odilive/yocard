@@ -194,19 +194,18 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .card-detail-dialog .dialog-card { display: flex; flex-direction: column; height: 100%; max-height: none; padding: 0; overflow: hidden; }
 .card-detail-dialog .dialog-head { flex: 0 0 auto; padding: clamp(22px, 4vw, 36px); border-bottom: 1px solid var(--line); background: #fff; }
 .card-detail-dialog .card-detail-content { min-height: 0; flex: 1 1 auto; margin-top: 0; padding: clamp(22px, 4vw, 36px); overflow: auto; }
-.account-sync { margin-top: 18px; padding: 16px 18px; border: 1px solid #cfe1dc; border-radius: 16px; background: #f3fbf8; }
-.account-sync-copy h3 { margin: 0; font-size: .96rem; }
+.account-sync { margin-top: 18px; padding: 14px 16px; border: 1px solid #dce7e3; border-radius: 14px; background: #f8faf9; }
+.account-sync-copy h3 { margin: 0; font-size: .84rem; }
 .account-sync-copy p { margin: 5px 0 0; color: var(--ink-soft); font-size: .78rem; line-height: 1.45; }
-.account-sync-signed-out { margin-top: 13px; }
-.sync-code-create { width: 100%; min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font-size: .82rem; font-weight: 850; }
-.sync-code-create:disabled, .sync-code-entry button:disabled { cursor: default; background: #dce6e3; color: #71817c; }
-.sync-code-divider { display: flex; align-items: center; gap: 10px; margin: 11px 0; color: #81908c; font-size: .7rem; }
-.sync-code-divider::before, .sync-code-divider::after { content: ''; height: 1px; flex: 1; background: #d6e5e0; }
+.account-sync-signed-out { margin-top: 11px; }
+.sync-code-create { display: block; min-height: 32px; margin: 7px auto 0; padding: 0 5px; border: 0; background: transparent; color: var(--ink-soft); font-size: .72rem; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+.sync-code-create:hover { color: var(--mint-dark); }
+.sync-code-create:disabled { cursor: default; color: #9ba8a4; text-decoration: none; }
+.sync-code-entry button:disabled { cursor: default; background: #dce6e3; color: #71817c; }
 .sync-code-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .sync-code-entry input { min-width: 0; min-height: 42px; padding: 0 12px; border: 1px solid #bcd3cc; border-right: 0; border-radius: 10px 0 0 10px; background: #fff; color: var(--ink); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .82rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 .sync-code-entry input:focus { position: relative; outline: 3px solid rgba(88, 225, 181, .22); border-color: var(--mint-dark); }
 .sync-code-entry button { min-width: 64px; border: 0; border-radius: 0 10px 10px 0; background: var(--navy); color: #fff; font-size: .78rem; font-weight: 850; }
-.account-auth-note { margin: 8px 0 0; color: var(--ink-soft); font-size: .72rem; text-align: center; }
 .account-auth-feedback { margin: 10px 0 0; padding: 9px 11px; border-radius: 9px; background: #e1f5ee; color: #126247; font-size: .76rem; font-weight: 750; line-height: 1.45; }
 .account-auth-feedback.is-error { background: #fff0ed; color: var(--danger); }
 .account-sync-signed-in { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; }
