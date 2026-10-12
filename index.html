@@ -54,12 +54,13 @@
             <input id="amount" type="text" inputmode="numeric" autocomplete="off" aria-describedby="amountHelp">
             <span>원</span>
           </div>
-          <div class="quick-amounts" id="amountHelp" aria-label="빠른 금액 입력">
-            <button type="button" data-amount="unknown">미정</button>
-            <button type="button" data-amount="5000">5천</button>
-            <button type="button" data-amount="10000">1만</button>
-            <button type="button" data-amount="30000">3만</button>
-            <button type="button" data-amount="50000">5만</button>
+          <div class="quick-amounts" id="amountHelp" aria-label="결제 예정 금액 더하기">
+            <button type="button" data-amount-add="1000">+1천</button>
+            <button type="button" data-amount-add="5000">+5천</button>
+            <button type="button" data-amount-add="10000">+1만</button>
+            <button type="button" data-amount-add="50000">+5만</button>
+            <button type="button" data-amount-add="100000">+10만</button>
+            <button class="amount-reset" id="resetAmount" type="button" disabled>초기화</button>
           </div>
         </div>
 
@@ -100,7 +101,6 @@
       <section class="card-picker" id="cardPicker" aria-labelledby="cardPickerTitle">
         <div class="card-picker-heading">
           <h3 id="cardPickerTitle"><span aria-hidden="true">+</span> 카드 추가</h3>
-          <p>보유한 카드의 이름이나 카드사, 혜택을 검색해 추가해보세요.</p>
         </div>
         <div class="card-picker-tools">
           <div class="card-search"><input id="cardSearch" type="search" autocomplete="off" aria-label="추가할 카드 검색" placeholder="카드명, 카드사 또는 혜택을 입력해보세요"><button id="applyCardSearch" type="button">검색</button></div>

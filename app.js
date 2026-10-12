@@ -977,7 +977,14 @@ function bindMoneyInput(input) {
   input.addEventListener('input', () => {
     const n = input.value.replace(/[^0-9]/g,'');
     input.value = n ? won.format(Number(n)) : '';
+    updateAmountReset();
   });
+}
+
+function updateAmountReset() {
+  const input = document.querySelector('#amount');
+  const button = document.querySelector('#resetAmount');
+  if (input && button) button.disabled = !input.value.replace(/[^0-9]/g,'');
 }
 
 function saveStatus() {
@@ -1090,6 +1097,7 @@ function renderFavorites() {
   document.querySelectorAll('[data-favorite-open]').forEach(button => button.addEventListener('click', () => {
     if (!selectFavorite(button.dataset.favoriteOpen)) return;
     document.querySelector('#amount').value = '';
+    updateAmountReset();
     updateConditional();
     renderResults(inputValues());
   }));
@@ -1458,11 +1466,20 @@ function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, c => ({'&'
 function setup() {
   document.querySelector('#periodLabel').textContent = `${today.getFullYear()}년 ${today.getMonth()+1}월`;
   renderMerchantOptions();
-  bindMoneyInput(document.querySelector('#amount'));
-  document.querySelectorAll('[data-amount]').forEach(button => button.addEventListener('click', () => {
-    document.querySelector('#amount').value = button.dataset.amount === 'unknown' ? '' : won.format(Number(button.dataset.amount));
+  const amountInput = document.querySelector('#amount');
+  bindMoneyInput(amountInput);
+  document.querySelectorAll('[data-amount-add]').forEach(button => button.addEventListener('click', () => {
+    const current = Number(amountInput.value.replace(/[^0-9]/g,'')) || 0;
+    amountInput.value = won.format(current + Number(button.dataset.amountAdd));
+    updateAmountReset();
     renderResults(inputValues());
   }));
+  document.querySelector('#resetAmount').addEventListener('click', () => {
+    amountInput.value = '';
+    updateAmountReset();
+    renderResults(inputValues());
+  });
+  updateAmountReset();
   document.querySelector('#recommendForm').addEventListener('submit', e => { e.preventDefault(); renderResults(inputValues()); });
   document.querySelectorAll('#recommendForm input').forEach(el => el.addEventListener('change', () => { updateConditional(); renderResults(inputValues()); }));
   document.querySelector('#merchantCategory').addEventListener('change', () => { renderMerchantOptions(); renderResults(inputValues()); });
@@ -1527,6 +1544,7 @@ function registerWebMCP() {
         renderMerchantOptions();
         document.querySelector('#merchant').value=input.merchant;
         document.querySelector('#amount').value=won.format(Math.floor(input.amount));
+        updateAmountReset();
         updateConditional();
         const values=inputValues(); renderResults(values); const best=lastResults[0];
         return { card:best?.card.name || null, paymentMethod:best ? recommendedPayment(best) : null, estimatedBenefit:best?.value || 0, benefitUnit:best?.eligible.every(x=>x.benefit.reward==='point')?'point':'won' };

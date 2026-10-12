@@ -71,9 +71,12 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .money-input { display: flex; align-items: center; padding: 0 16px; }
 .money-input input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 1.16rem; font-weight: 800; text-align: right; }
 .money-input span { margin-left: 8px; color: var(--ink-soft); }
-.quick-amounts { display: flex; gap: 6px; margin-top: 8px; }
-.quick-amounts button { flex: 1; border: 0; border-radius: 8px; padding: 7px 6px; background: #edf3f1; color: var(--ink-soft); font-size: .78rem; font-weight: 700; }
-.quick-amounts button:hover { background: #dff8ef; color: var(--mint-dark); }
+.quick-amounts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 8px; }
+.quick-amounts button { min-width: 0; border: 0; border-radius: 8px; padding: 7px 2px; background: #edf3f1; color: var(--ink-soft); font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.quick-amounts button:not(:disabled):hover { background: #dff8ef; color: var(--mint-dark); }
+.quick-amounts .amount-reset { border: 1px solid #ced9d6; background: #f9fbfa; color: #65756f; }
+.quick-amounts .amount-reset:not(:disabled):hover { border-color: #9eb4ae; background: #f0f5f3; color: var(--ink); }
+.quick-amounts .amount-reset:disabled { border-color: #e1e7e5; background: #f6f8f7; color: #a8b2af; cursor: default; }
 
 .segmented { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .segmented.compact { grid-template-columns: repeat(2, 1fr); }
@@ -240,7 +243,6 @@ select:focus, .money-input:focus-within { outline: 3px solid rgba(88, 225, 181, 
 .card-picker-heading { margin-bottom: 12px; }
 .card-picker-heading h3 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: .96rem; }
 .card-picker-heading h3 span { display: inline-grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; background: var(--navy); color: #fff; font-size: .9rem; line-height: 1; }
-.card-picker-heading p { margin: 5px 0 0; color: var(--ink-soft); font-size: .77rem; line-height: 1.45; }
 .card-picker-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
 .card-search { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .card-search input { width: 100%; min-height: 43px; padding: 0 13px; border: 1px solid #bed5ce; border-right: 0; border-radius: 11px 0 0 11px; background: #fff; color: var(--ink); }
