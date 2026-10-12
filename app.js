@@ -39,11 +39,13 @@ function normalizeSavedState(saved) {
     ownedCards: Array.isArray(saved.ownedCards)
       ? [...new Set(saved.ownedCards)].filter(cardId => cards.some(card => card.id === cardId))
       : cards.filter(card => saved.cardEnabled?.[card.id] !== false).map(card => card.id),
-    favorites: Array.isArray(saved.favorites) ? saved.favorites.map(key => {
+    favorites: Array.isArray(saved.favorites) ? [...new Set(saved.favorites.flatMap(key => {
+      if (key === 'category:교통·주유') return ['category:교통','category:주유·충전'];
+      if (key === 'category:교육·서점') return ['category:교육','category:서점'];
       if (typeof key !== 'string' || !key.startsWith('category:')) return key;
       const category = key.slice('category:'.length);
       return `category:${categoryAliases[category] || category}`;
-    }) : []
+    }))] : []
   };
   if (saved.period !== period) return { ...structuredClone(initialState), ...profile, spends:saved.spends || {} };
   return { ...structuredClone(initialState), ...savedState, ...profile };
