@@ -713,12 +713,12 @@ function renderUnifiedResults(input) {
     const totalLabel = strategy.combination ? '<span class="strategy-total-label">총 혜택</span>' : '';
     return `<article class="strategy-row${strategy.combination ? ' is-combination' : ''}"><div class="strategy-main"><span class="strategy-target">${escapeHtml(targetAndScenario)}</span><h3>${cardTitle}</h3>${valueBreakdown}</div><strong>${totalLabel}${escapeHtml(value)}</strong>${membershipAddon}<small class="strategy-conditions">${escapeHtml(conditions)}</small></article>`;
   };
-  const section = (title, note, items, empty, type) => {
+  const section = (title, items, empty, type) => {
     const content = items.length ? items.map(row).join('') : `<p class="strategy-empty">${empty}</p>`;
-    return `<section class="strategy-section strategy-section-${type}"><div class="strategy-section-heading"><span class="strategy-section-state">${type === 'current' ? '현재 적용' : '현재 적용 불가'}</span><div><h3>${title}</h3><p>${note}</p></div></div>${content}</section>`;
+    return `<section class="strategy-section strategy-section-${type}"><div class="strategy-section-heading"><h3>${title}</h3></div>${content}</section>`;
   };
   const targetName = input.category || merchants.find(merchant => merchant.id === input.merchant)?.label || '구매처';
-  container.innerHTML = `<div class="recommendation strategy-results"><span class="best-label">${escapeHtml(targetName)} · ${input.amount ? `${won.format(input.amount)}원` : '금액 미정'}</span>${section('지금 받을 수 있는 혜택', '현재 전월 실적으로 바로 적용돼요.', now, '현재 설정에서 바로 적용되는 혜택이 없어요.', 'current')} ${section('전월 실적을 채우면 받을 수 있어요', '아래 혜택은 아직 결제에 적용되지 않아요.', later, '추가로 충족할 전월 실적 조건이 없어요.', 'later')}</div>`;
+  container.innerHTML = `<div class="recommendation strategy-results"><span class="best-label">${escapeHtml(targetName)} · ${input.amount ? `${won.format(input.amount)}원` : '금액 미정'}</span>${section('지금 받을 수 있는 혜택', now, '현재 설정에서 바로 적용되는 혜택이 없어요.', 'current')} ${section('실적을 채우면 받을 수 있는 혜택', later, '추가로 충족할 전월 실적 조건이 없어요.', 'later')}</div>`;
   container.querySelectorAll('[data-result-card-detail]').forEach(button => button.addEventListener('click', () => openCardDetail(button.dataset.resultCardDetail)));
   container.querySelectorAll('[data-result-membership-detail]').forEach(button => button.addEventListener('click', openMembershipDetail));
 }
@@ -1222,7 +1222,7 @@ function renderAccountSync() {
     warning.hidden = true;
     createButton.disabled = true;
     connectButton.disabled = true;
-    description.textContent = 'Supabase 연결 정보를 입력하면 설정 동기화를 사용할 수 있습니다.';
+    description.textContent = '설정 저장 기능을 준비 중입니다.';
     return;
   }
 
@@ -1231,12 +1231,10 @@ function renderAccountSync() {
   signedOut.hidden = !!syncCodeHash;
   signedIn.hidden = !syncCodeHash;
   warning.hidden = !syncCodeHash;
-  description.textContent = syncCodeHash
-    ? '이 기기의 설정을 다른 기기와 함께 사용 중입니다.'
-    : '다른 기기에서 사용하던 설정을 불러올 수 있습니다.';
+  description.textContent = '내 카드와 즐겨찾기를 저장하고, 다른 기기에서도 같은 설정을 불러올 수 있어요.';
   if (syncCodeHash) {
     document.querySelector('#syncCodeLabel').textContent = syncCode;
-    setAccountSyncStatus(cloudReady ? '동기화 완료' : '설정을 불러오는 중');
+    setAccountSyncStatus(cloudReady ? '저장 완료' : '설정을 불러오는 중');
   }
 }
 
@@ -1249,7 +1247,7 @@ async function pushCloudState() {
     schema_version:settingsSchemaVersion,
     updated_at:new Date().toISOString()
   }, { onConflict:'user_id' });
-  setAccountSyncStatus(error ? '동기화 실패' : '동기화 완료', !!error);
+  setAccountSyncStatus(error ? '저장 실패' : '저장 완료', !!error);
 }
 
 function queueCloudSave() {
@@ -1315,7 +1313,7 @@ async function createSyncProfile() {
     setAccountSyncFeedback(
       signupReady === false
         ? '운영 준비가 아직 끝나지 않았어요. Supabase에서 Confirm email을 꺼 주세요.'
-        : '동기화 설정을 확인하지 못했어요. 네트워크 연결을 확인해 주세요.',
+        : '설정 저장 기능을 확인하지 못했어요. 네트워크 연결을 확인해 주세요.',
       true
     );
     return;
@@ -1346,7 +1344,7 @@ async function createSyncProfile() {
     setAccountSyncFeedback('첫 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.', true);
     return;
   }
-  showToast('동기화 코드를 만들었어요.');
+  showToast('설정 코드를 만들었어요.');
 }
 
 async function connectSyncProfile() {
@@ -1354,7 +1352,7 @@ async function connectSyncProfile() {
   const input = document.querySelector('#syncCodeInput');
   const code = normalizeSyncCode(input.value);
   if (!code) {
-    setAccountSyncFeedback('16자리 동기화 코드를 확인해 주세요.', true);
+    setAccountSyncFeedback('16자리 설정 코드를 확인해 주세요.', true);
     input.focus();
     return;
   }
@@ -1377,16 +1375,16 @@ async function connectSyncProfile() {
     return;
   }
   input.value = '';
-  showToast('이 기기를 동기화 코드에 연결했어요.');
+  showToast('설정 코드를 불러왔어요.');
 }
 
 async function copySyncProfileCode() {
   if (!syncCode) return;
   try {
     await navigator.clipboard.writeText(syncCode);
-    showToast('동기화 코드를 복사했어요.');
+    showToast('설정 코드를 복사했어요.');
   } catch {
-    setAccountSyncFeedback(`동기화 코드: ${syncCode}`);
+    setAccountSyncFeedback(`설정 코드: ${syncCode}`);
   }
 }
 
@@ -1400,7 +1398,7 @@ async function disconnectSyncProfile() {
   syncCodeHash = '';
   cloudReady = false;
   renderAccountSync();
-  setAccountSyncFeedback('이 기기의 연결만 해제했어요. 서버의 설정은 그대로 남아 있습니다.');
+  setAccountSyncFeedback('이 기기에서 코드 연결만 해제했어요. 저장된 설정은 그대로 남아 있습니다.');
 }
 
 async function importLegacyAccountState(user) {
@@ -1455,7 +1453,7 @@ async function initCloudSync() {
     syncCodeHash = '';
     cloudReady = false;
     renderAccountSync();
-    setAccountSyncFeedback('저장된 동기화 코드의 설정을 찾지 못했어요. 다시 연결해 주세요.', true);
+    setAccountSyncFeedback('저장된 설정 코드의 정보를 찾지 못했어요. 다시 연결해 주세요.', true);
   }
 }
 
