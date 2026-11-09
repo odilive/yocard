@@ -1,0 +1,12 @@
+{
+  "name": "yocard",
+  "private": true,
+  "scripts": {
+    "test": "node scripts/validate-data.js && node scripts/test-catalog.js",
+    "test:db": "node scripts/test-catalog-db.mjs",
+    "test:ui": "node scripts/test-catalog-ui.js",
+    "catalog:seed": "node scripts/build-catalog-seed.js",
+    "preview": "node scripts/serve.js"
+  },
+  "devDependencies": { "@electric-sql/pglite": "0.5.15", "playwright": "1.62.1" }
+}

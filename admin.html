@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>요카드 — 카드 정보 관리</title>
+  <link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./index.html"><span class="brand-icon">✓</span><span>요카드 <small>YOCARD</small></span></a>
+    <span class="workspace-title">카드 정보 관리</span>
+    <button id="connect" class="quiet" type="button">Supabase 연결</button>
+  </header>
+  <div class="mode-bar"><span class="mode-dot"></span><strong id="modeLabel">로컬 검수</strong><span id="modeDescription">변경사항은 이 브라우저에 저장됩니다.</span><span class="draft-only">사용자 서비스 반영 전</span></div>
+  <main class="workspace">
+    <aside class="sidebar">
+      <div class="sidebar-title"><h1>카드 목록</h1><span id="cardCount"></span></div>
+      <label class="search-box"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="카드명·브랜드 검색" aria-label="카드명 또는 브랜드 검색"></label>
+      <nav id="cards" aria-label="검수할 카드"></nav>
+      <div class="sidebar-footer"><button id="export" type="button">초안 내보내기 ↗</button><label class="file-button">초안 가져오기<input type="file" id="import" accept="application/json,.json"></label></div>
+    </aside>
+    <section class="main-panel" id="mainPanel" aria-live="polite">
+      <p class="loading">카드 정보를 불러오고 있어요.</p>
+    </section>
+  </main>
+  <dialog id="editor" class="editor-dialog">
+    <form id="editForm">
+      <div class="dialog-head"><div><span class="eyebrow">혜택 검수</span><h2 id="editorTitle">혜택 수정</h2></div><button type="button" class="close" data-close="editor" aria-label="닫기">×</button></div>
+      <div class="dialog-body" id="editorBody"></div>
+      <div class="dialog-footer"><span>검토 내용은 카드 초안에 적용됩니다.</span><button type="button" class="quiet" data-close="editor">취소</button><button class="primary" type="submit">초안에 적용</button></div>
+    </form>
+  </dialog>
+  <dialog id="limitEditor" class="editor-dialog">
+    <form id="limitForm"><div class="dialog-head"><div><span class="eyebrow">한도 관리</span><h2>한도 수정</h2></div><button type="button" class="close" data-close="limitEditor" aria-label="닫기">×</button></div><div class="dialog-body" id="limitEditorBody"></div><div class="dialog-footer"><button type="button" class="quiet" data-close="limitEditor">취소</button><button class="primary" type="submit">초안에 적용</button></div></form>
+  </dialog>
+  <dialog id="connectionDialog" class="connection-dialog">
+    <form id="loginForm"><div class="dialog-head"><h2>관리자 로그인</h2><button class="close" type="button" data-close="connectionDialog" aria-label="닫기">×</button></div><div class="dialog-body"><p>관리자 권한이 등록된 계정으로 카드 DB에 연결합니다.</p><label>이메일<input name="email" type="email" autocomplete="username" required></label><label>비밀번호<input name="password" type="password" autocomplete="current-password" required></label><p id="loginFeedback" role="status"></p><a href="./docs/catalog-admin-setup.md" target="_blank" rel="noopener">처음 연결하는 방법 ↗</a></div><div class="dialog-footer"><button type="button" id="useLocal" class="quiet">로컬 검수로 돌아가기</button><button type="submit" class="primary">DB 연결</button></div></form>
+  </dialog>
+  <p id="feedback" class="toast" role="status" hidden></p>
+  <script src="./catalog/model.js"></script>
+  <script src="./data/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./admin.js"></script>
+</body>
+</html>

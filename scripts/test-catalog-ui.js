@@ -1,0 +1,132 @@
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const fs=require('node:fs');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const root=path.resolve(__dirname,'..');
+const artifacts=path.join(root,'artifacts');fs.mkdirSync(artifacts,{recursive:true});
+(async()=>{
+  const browser=await chromium.launch({channel:process.env.TEST_BROWSER_CHANNEL||'msedge',headless:true});
+  try{
+    const context=await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
+    const page=await context.newPage();const errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.fulfill({contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{signInWithPassword:async()=>({error:null}),signOut:async()=>({})},rpc:async()=>({data:false,error:null})})};`}));
+    await page.goto('http://127.0.0.1:4173/admin.html');
+    await page.locator('[data-edit="nori-coffee"]').waitFor();
+    assert.equal(await page.locator('.card-link').count(),5);
+    await page.screenshot({path:path.join(artifacts,'admin-desktop.png'),fullPage:true});
+    await page.locator('#search').fill('스타벅스');
+    assert((await page.locator('.card-link').count())>=3);
+    await page.locator('#search').fill('');
+    await page.locator('[data-edit="nori-coffee"]').click();
+    assert.equal(await page.locator('#targetChips .target-chip').count(),2);
+    await page.locator('[name="rate_percent"]').fill('12');
+    await page.locator('[name="review_note"]').fill('브라우저 저장 검증');
+    await page.locator('#editForm [type="submit"]').click();
+    assert((await page.locator('[data-benefit-row="nori-coffee"] .benefit-reward').innerText()).includes('12%'));
+    await page.locator('#saveCard').click();
+    await page.waitForFunction(()=>document.querySelector('.save-state').textContent.includes('저장됨'));
+    await page.reload();await page.locator('[data-edit="nori-coffee"]').waitFor();
+    assert((await page.locator('[data-benefit-row="nori-coffee"] .benefit-reward').innerText()).includes('12%'));
+    await page.locator('[data-edit="nori-coffee"]').click();
+    assert((await page.locator('.original').first().innerText()).includes('10%'));
+    await page.locator('[name="rate_percent"]').fill('13');
+    await page.locator('#targetQuery').fill('이디야');
+    await page.locator('[data-add-target="ediya"]').click();
+    assert.equal(await page.locator('[name="rate_percent"]').inputValue(),'13');
+    assert.equal(await page.locator('#targetChips .target-chip').count(),3);
+    await page.locator('#editForm [data-close="editor"]').last().click();
+    await page.locator('[data-card="hana"]').click();
+    await page.locator('[data-edit="hana-px"]').click();
+    assert.equal(await page.locator('[name="tier_max"]').first().inputValue(),'30000');
+    assert.equal(await page.locator('[name="tier_min"]').nth(1).inputValue(),'30000');
+    await page.locator('[name="tier_min"]').nth(1).fill('29999');
+    await page.locator('#editForm [type="submit"]').click();
+    assert(await page.locator('#editor').evaluate(d=>d.open));
+    assert((await page.locator('#feedback').innerText()).includes('겹칩니다'));
+    await page.locator('[name="tier_min"]').nth(1).fill('30000');
+    await page.locator('#editForm [type="submit"]').click();
+    await page.locator('[data-card="samsung-happiness-v2"]').click();
+    await page.locator('[data-tab="limits"]').click();
+    assert.equal(await page.locator('.panel .eyebrow').filter({hasText:'공유 한도'}).count(),4);
+    await page.locator('[data-limit="samsung-happiness-v2:shopping"]').click();
+    assert.equal(await page.locator('#limitForm [name="parent_id"]').inputValue(),'samsung-happiness-v2:samsungHappy');
+    await page.locator('#limitForm [name="limit_cap"]').first().fill('4500');
+    await page.locator('#limitForm [type="submit"]').click();
+    assert((await page.locator('.panel').filter({has:page.locator('[data-limit="samsung-happiness-v2:shopping"]')}).innerText()).includes('4,500'));
+    await page.locator('[data-card="starbucks-hyundai"]').click();
+    await page.locator('[data-tab="benefits"]').click();
+    await page.locator('[data-edit="starbucks-hyundai-stars"]').click();
+    assert.equal(await page.locator('[name="unit_amount"]').inputValue(),'30000');
+    assert.equal(await page.locator('[name="reward_unit"]').inputValue(),'STAR');
+    assert.equal(await page.locator('[name="carry_over"]').inputValue(),'yes');
+    await page.locator('#editForm [data-close="editor"]').last().click();
+    const downloadEvent=page.waitForEvent('download');await page.locator('#export').click();const download=await downloadEvent;
+    await download.saveAs(path.join(artifacts,'draft-export.json'));
+    const exported=JSON.parse(fs.readFileSync(path.join(artifacts,'draft-export.json'),'utf8'));
+    assert.equal(exported.documents.length,5);
+    await page.locator('#connect').click();
+    await page.locator('#loginForm [name="email"]').fill('operator@example.test');
+    await page.locator('#loginForm [name="password"]').fill('test-only-not-a-real-password');
+    page.once('dialog',dialog=>dialog.accept());
+    await page.locator('#loginForm [type="submit"]').click();
+    await page.waitForFunction(()=>document.querySelector('#loginFeedback').textContent.includes('권한이 없습니다'));
+    assert.equal(await page.locator('#loginForm [name="password"]').inputValue(),'');
+    await page.locator('#loginForm [data-close="connectionDialog"]').click();
+    await page.setViewportSize({width:390,height:844});
+    await page.locator('[data-card="nori"]').click();
+    await page.locator('[data-tab="benefits"]').click();
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:path.join(artifacts,'admin-mobile.png'),fullPage:true});
+    await page.locator('[data-edit="nori-coffee"]').click();
+    assert(await page.locator('#editor').evaluate(d=>d.scrollWidth<=d.clientWidth));
+    await page.screenshot({path:path.join(artifacts,'admin-mobile-editor.png')});
+    assert.deepEqual(errors,[]);
+    await context.close();
+    // Exercise the remote adapter contract without calling the live Supabase project.
+    const remoteContext=await browser.newContext({viewport:{width:1280,height:900}});
+    const remote=await remoteContext.newPage();
+    const pilot=JSON.parse(fs.readFileSync(path.join(root,'catalog/pilot.json'),'utf8'));
+    pilot.documents.forEach(d=>{d.card.revision=1;});
+    await remote.route('**/cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.fulfill({contentType:'text/javascript',body:`
+      window.__mockCatalog=${JSON.stringify(pilot)};window.__conflict=false;
+      window.supabase={createClient:()=>({
+        auth:{signInWithPassword:async()=>({error:null}),signOut:async()=>({})},
+        from:table=>({select:()=>({order:()=>({range:async()=>({data:table==='yocard_catalog_cards'?window.__mockCatalog.documents.map(d=>({id:d.card.id})):window.__mockCatalog.targets,error:null})})})}),
+        rpc:async(name,args)=>{
+          if(name==='yocard_is_catalog_admin')return {data:true,error:null};
+          if(name==='yocard_catalog_card')return {data:structuredClone(window.__mockCatalog.documents.find(d=>d.card.id===args.p_card_id)),error:null};
+          if(name==='yocard_catalog_save'){
+            if(window.__conflict)return {data:null,error:{code:'40001',message:'conflict'}};
+            const doc=structuredClone(args.p_document);doc.card.revision++;
+            window.__mockCatalog.documents[window.__mockCatalog.documents.findIndex(d=>d.card.id===doc.card.id)]=doc;
+            return {data:doc,error:null};
+          }
+        }
+      })};
+    `}));
+    await remote.goto('http://127.0.0.1:4173/admin.html');
+    await remote.locator('[data-edit="nori-coffee"]').waitFor();
+    await remote.locator('#connect').click();
+    await remote.locator('#loginForm [name="email"]').fill('operator@example.test');
+    await remote.locator('#loginForm [name="password"]').fill('test-only');
+    await remote.locator('#loginForm [type="submit"]').click();
+    await remote.waitForFunction(()=>document.querySelector('#modeLabel').textContent==='Supabase 연결됨');
+    await remote.locator('[data-edit="nori-coffee"]').click();
+    await remote.locator('[name="rate_percent"]').fill('14');
+    await remote.locator('#editForm [type="submit"]').click();
+    await remote.locator('#saveCard').click();
+    await remote.waitForFunction(()=>document.querySelector('.save-state').textContent.includes('v2'));
+    assert.equal(await remote.evaluate(()=>window.__mockCatalog.documents.find(d=>d.card.id==='nori').benefits.find(b=>b.id==='nori-coffee').rate_percent),14);
+    await remote.evaluate(()=>{window.__conflict=true;});
+    await remote.locator('[data-edit="nori-coffee"]').click();
+    await remote.locator('[name="rate_percent"]').fill('15');
+    await remote.locator('#editForm [type="submit"]').click();
+    await remote.locator('#saveCard').click();
+    await remote.waitForFunction(()=>document.querySelector('#feedback').textContent.includes('다른 창에서'));
+    assert((await remote.locator('.save-state').innerText()).includes('저장하지 않은 변경'));
+    assert.equal(await remote.evaluate(()=>window.__mockCatalog.documents.find(d=>d.card.id==='nori').benefits.find(b=>b.id==='nori-coffee').rate_percent),14);
+    await remoteContext.close();
+    console.log('브라우저 통과: 5카드·브랜드 검색·수정/저장/재접속·원문 보존·PX 경계·공유한도·별 단위·내보내기·권한 오류·모바일 가로폭·원격 어댑터 저장/충돌');
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});
