@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const model=require('../catalog/model.js');
+const view=require('../catalog/presentation.js');
 const seed=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../catalog/pilot.json'),'utf8'));
 assert.equal(seed.documents.length,5);
 let count=0;
@@ -40,4 +41,28 @@ assert(model.validateDocument(invalid,seed.targets).some(e=>e.includes('겹칩�
 const original=model.clone(nori);const changed=model.clone(nori);changed.benefits[0].rate_percent=12;
 assert(model.changes(original,changed).length>0);
 assert.equal(nori.benefits[0].rate_percent,10);
+// Reading a card must not require opening an editor or lose a linked rule.
+for(const doc of seed.documents){
+  const shown=view.groups(doc,seed.targets).flatMap(g=>g.benefits.map(b=>b.id));
+  assert.deepEqual(shown.sort(),doc.benefits.map(b=>b.id).sort());
+  for(const b of doc.benefits){
+    const fields=view.fields(doc,b,seed.targets);
+    const shownLimits=fields.filter(f=>f.limitId).map(f=>f.limitId);
+    assert.deepEqual(shownLimits.sort(),doc.limits.filter(l=>l.scope==='benefit'&&l.benefit_ids.includes(b.id)).map(l=>l.id).sort());
+    assert(fields.some(f=>f.label==='전월 실적'));assert(fields.some(f=>f.label==='건당 이용 조건'));
+  }
+}
+assert(view.fields(nori,nori.benefits[0],seed.targets).some(f=>f.label==='월 한도'&&f.value==='3,000원'));
+assert.equal(view.title(nori.benefits.find(b=>b.id==='nori-kb-off'),seed.targets),'KB Pay');
+const px=find('hana').benefits.find(b=>b.id==='hana-px');
+assert.equal(view.reward(px),'20~30%');
+assert.equal(view.range(px.rule_config.tiers[0]),'30,000원 미만');
+assert(view.relations(woori,woori.benefits.find(b=>b.id==='woori-point-cafe3'),seed.targets).some(t=>t.includes('0.8%')&&t.includes('대신')));
+assert(view.relations(woori,woori.benefits.find(b=>b.id==='woori-point-cafe3'),seed.targets).some(t=>t.includes('3% 추가')));
+const changedStar=model.clone(find('starbucks-hyundai'));changedStar.benefits[0].unit_amount=60000;
+assert(view.fields(changedStar,changedStar.benefits[0],seed.targets).some(f=>f.value.includes('60,000원')));
+assert(!view.notes(changedStar,changedStar.benefits[0]).some(t=>t.includes('30,000원')));
+assert.equal(view.limitAt(woori.limits.find(l=>l.scope==='shared'),300000),'10,000P');
+const reordered=model.clone(happy);reordered.sections.forEach(section=>section.benefit_ids.reverse());
+assert.deepEqual(view.groups(reordered,seed.targets).map(g=>g.benefits.map(b=>b.id)),view.groups(happy,seed.targets).map(g=>g.benefits.map(b=>b.id)));
 console.log(`카탈로그 정상: 원본 ${count}행 전부 연결, 56개 규칙, 브랜드·공유한도·추가적립·단위 검증 통과`);

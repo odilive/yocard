@@ -1,6 +1,7 @@
 (async function() {
   'use strict';
   const M=window.YocardCatalog;
+  const V=window.YocardCatalogView;
   const $=selector=>document.querySelector(selector);
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const key='yocard-catalog-drafts-v1';
@@ -27,9 +28,9 @@
     if(stored&&!valid)notify('저장된 초안의 형식을 확인하지 못해 표본을 열었습니다. 기존 저장값은 덮어쓰지 않았습니다.',true);
   }
   function render(){
-    $('#modeLabel').textContent=mode==='cloud'?'Supabase 연결됨':'로컬 검수';
-    $('#modeDescription').textContent=mode==='cloud'?'관리자 전용 카드 DB의 초안을 편집합니다.':'변경사항은 이 브라우저에 저장됩니다.';
-    $('#connect').textContent=mode==='cloud'?'연결 해제':'Supabase 연결';
+    $('#modeLabel').textContent=mode==='cloud'?'DB 연결됨':'미리보기';
+    $('#modeDescription').textContent=mode==='cloud'?'저장하면 카드 DB에 반영됩니다.':'관리자 로그인 후 실제 DB의 카드 정보를 검수할 수 있어요.';
+    $('#connect').textContent=mode==='cloud'?'로그아웃':'관리자 로그인';
     $('#connect').disabled=busy;
     renderSidebar();renderMain();
   }
@@ -37,38 +38,51 @@
   function renderSidebar(){
     const cards=documents.filter(d=>matches(d));
     $('#cardCount').textContent=`${cards.length}장`;
-    $('#cards').innerHTML=cards.length?cards.map(doc=>`<button type="button" class="card-link ${doc.card.id===selected?'active':''}" data-card="${esc(doc.card.id)}" ${busy?'disabled':''} ${doc.card.id===selected?'aria-current="true"':''}><span>${esc(doc.card.name)}${dirty(doc)?' ·':''}</span><small>${esc(doc.card.issuer)} · ${doc.benefits.length}개 규칙</small></button>`).join(''):'<p class="empty">검색 결과가 없어요.</p>';
+    $('#cards').innerHTML=cards.length?cards.map(doc=>`<button type="button" class="card-link ${doc.card.id===selected?'active':''}" data-card="${esc(doc.card.id)}" ${busy?'disabled':''} ${doc.card.id===selected?'aria-current="true"':''}><span>${esc(doc.card.name)}${dirty(doc)?' ·':''}</span><small>${esc(doc.card.issuer)} · 혜택 ${V.groups(doc,targets).length}개</small></button>`).join(''):'<p class="empty">검색 결과가 없어요.</p>';
+  }
+  function sourceLinks(doc){
+    return doc.card.sources.map(s=>sourceLink(s.url,s.kind==='official'?'공식 안내':s.url.includes('card-gorilla.com')?'카드고릴라':'참고 자료')).join('');
   }
   function renderMain(){
     $('#mainPanel').inert=busy;
     const doc=current();
     if(!doc){$('#mainPanel').innerHTML='<p class="empty">등록된 카드 초안이 없습니다. 초기 데이터 가져오기 절차를 확인해 주세요.</p>';return;}
     const reviewed=doc.benefits.filter(b=>b.review_status==='reviewed').length;
-    $('#mainPanel').innerHTML=`<div class="card-header"><div><span class="eyebrow">CARD CATALOG · DRAFT</span><h2>${esc(doc.card.name)}</h2><p class="card-meta">${esc(doc.card.issuer)} · ${esc(doc.card.kind)} · ${esc(doc.card.reward_medium)}</p></div><div class="header-actions"><span class="save-state ${dirty(doc)?'dirty':''}">${dirty(doc)?'저장하지 않은 변경':'저장됨'} · v${doc.card.revision}</span><button id="saveCard" class="primary" type="button" ${busy?'disabled':''}>${busy?'저장 중…':'카드 초안 저장'}</button></div></div>
-    <p class="intro-note">기존 정리와 적용 규칙을 비교하며 검수하세요. 미확인 조건은 그대로 표시하고, 검수 완료한 항목을 구분해 둘 수 있어요.</p>
-    <div class="metrics"><div class="metric"><span>혜택 규칙</span><strong>${doc.benefits.length}</strong></div><div class="metric"><span>검수 완료</span><strong>${reviewed}</strong></div><div class="metric"><span>공유 한도</span><strong>${doc.limits.filter(l=>l.scope==='shared').length}</strong></div></div>
-    <nav class="tabs" aria-label="카드 관리 메뉴">${Object.entries({benefits:'혜택',limits:'한도',relations:'혜택 관계',sources:'카드·출처',history:'변경 이력'}).map(([id,name])=>`<button type="button" class="${tab===id?'active':''}" data-tab="${id}" aria-pressed="${tab===id}">${name}</button>`).join('')}</nav><div id="tabContent"></div>`;
+    $('#mainPanel').innerHTML=`<div class="card-header"><div><h2>${esc(doc.card.name)}</h2><p class="card-meta">${esc(doc.card.issuer)} · ${esc(doc.card.kind)} · ${esc(doc.card.reward_medium)}</p></div><div class="header-actions"><span class="review-progress">검수 ${reviewed} / ${doc.benefits.length}</span><button type="button" data-edit-card class="text-button">카드 정보 수정</button></div></div>
+    <div class="card-toolbar"><div class="source-links" aria-label="비교할 원문 새 탭으로 열기">${sourceLinks(doc)}</div><div class="save-actions"><span class="save-state ${dirty(doc)?'dirty':''}">${dirty(doc)?'저장하지 않은 변경':'저장됨'} · v${doc.card.revision}</span><button id="saveCard" class="primary" type="button" ${busy?'disabled':''}>${busy?'저장 중…':'카드 저장'}</button></div></div>
+    <nav class="tabs" aria-label="카드 관리 메뉴">${Object.entries({benefits:'혜택 정보',history:'저장 이력'}).map(([id,name])=>`<button type="button" class="${tab===id?'active':''}" data-tab="${id}" aria-pressed="${tab===id}">${name}</button>`).join('')}</nav><div id="tabContent"></div>`;
     renderTab();
+  }
+  function sharedLimits(doc){
+    const limits=doc.limits.filter(l=>l.scope==='shared');
+    if(!limits.length)return '';
+    const thresholds=[...new Set(limits.flatMap(l=>l.tiers.map(t=>t.min_spend)))].sort((a,b)=>a-b);
+    if(!thresholds.length)thresholds.push(0);
+    return `<section class="shared-overview" id="sharedLimits" aria-labelledby="sharedLimitsTitle"><div class="overview-heading"><h3 id="sharedLimitsTitle">통합한도</h3><span>아래 혜택들이 함께 사용하는 한도</span></div><div class="table-scroll"><table class="shared-table"><thead><tr><th scope="col">전월 실적</th>${limits.map(l=>`<th scope="col">${esc(l.name)}<button class="text-button" type="button" data-limit="${esc(l.id)}" aria-label="${esc(l.name)} 수정">수정</button></th>`).join('')}</tr></thead><tbody>${thresholds.map(amount=>`<tr><th scope="row">${amount?M.number(amount)+'원 이상':'조건 없음'}</th>${limits.map(l=>`<td>${esc(V.limitAt(l,amount))}</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="shared-members">${limits.map(l=>`<details><summary>${esc(l.name)} · 적용 혜택 보기</summary>${l.parent_id?`<p class="section-note">${esc(doc.limits.find(x=>x.id===l.parent_id)?.name||l.parent_id)}도 함께 적용됩니다.</p>`:''}<ul>${l.benefit_ids.map(id=>doc.benefits.find(b=>b.id===id)).filter(Boolean).map(b=>`<li><a href="#benefit-${esc(b.id)}">${esc(V.title(b,targets))} · ${esc(V.reward(b))}</a></li>`).join('')}</ul></details>`).join('')}</div></section>`;
+  }
+  function readBenefit(doc,b,multiple){
+    const details=V.fields(doc,b,targets);
+    const notes=V.notes(doc,b);
+    const relations=V.relations(doc,b,targets);
+    return `<article class="read-benefit${multiple?' is-variant':''}" data-benefit-row="${esc(b.id)}" id="benefit-${esc(b.id)}">
+      <div class="read-benefit-head"><div>${multiple?`<h4>${esc(b.channel!=='any'&&b.targets.some(t=>t.target_id==='*')?(b.channel==='online'?'온라인':'오프라인'):V.title(b,targets))}${b.payment_method==='autopay'?' · 자동납부':''}</h4>`:`<h3>${esc(V.title(b,targets))}</h3>`}<span class="reward-method">${esc(V.rewardKinds[b.reward_kind])}</span></div><div class="benefit-actions"><strong class="benefit-reward">${esc(V.reward(b))}</strong><button class="edit-button" data-edit="${esc(b.id)}" type="button" aria-label="${esc(V.title(b,targets))} 혜택 수정">수정</button></div></div>
+      <dl class="benefit-facts">${details.map(f=>`<div class="fact${f.unknown?' is-unknown':''}"><dt>${esc(f.label)}</dt><dd>${esc(f.value)}${f.limitId?`<button type="button" class="text-button" data-limit="${esc(f.limitId)}" aria-label="${esc(f.label)} 수정">수정</button>`:''}${f.sharedIds?'<a href="#sharedLimits" class="fact-anchor">표 보기 ↑</a>':''}</dd></div>`).join('')}</dl>
+      ${b.rule_type==='tiered'?`<div class="table-scroll"><table class="amount-table" aria-label="결제금액별 혜택"><thead><tr><th>건당 결제금액</th><th>혜택률</th><th>일 한도</th><th>월 한도</th></tr></thead><tbody>${b.rule_config.tiers.map(t=>`<tr><td>${esc(V.range(t))}</td><td>${M.number(t.rate_percent)}%</td><td>${t.daily_cap==null?'미확인':M.number(t.daily_cap)+M.units[b.reward_unit]}</td><td>${t.monthly_cap==null?'미확인':M.number(t.monthly_cap)+M.units[b.reward_unit]}</td></tr>`).join('')}</tbody></table></div>`:''}
+      ${relations.length?`<ul class="benefit-relationships">${relations.map(text=>`<li>${esc(text)}</li>`).join('')}</ul>`:''}
+      ${notes.length?`<ul class="benefit-notes">${notes.map(text=>`<li>${esc(text)}</li>`).join('')}</ul>`:''}
+      <div class="read-review"><span class="badge ${b.review_status}">${M.reviewLabels[b.review_status]}</span>${b.review_note?`<span>${esc(b.review_note)}</span>`:''}<button class="text-button review-button" type="button" data-review="${esc(b.id)}">${b.review_status==='reviewed'?'검수 다시 열기':'검수 완료'}</button></div>
+    </article>`;
   }
   function renderTab(){
     const doc=current();if(!doc)return;
     const root=$('#tabContent');
     if(tab==='benefits'){
-      const list=doc.benefits.filter(b=>matches(doc,b)&&(filter==='all'||b.review_status===filter));
-      root.innerHTML=`<div class="list-toolbar"><p>브랜드별 적용 범위와 지급 규칙</p><select id="reviewFilter" aria-label="검수 상태 필터">${options({all:'전체 상태',...M.reviewLabels},filter)}</select></div>${list.map(b=>{
-        const types=[...new Set(b.targets.filter(t=>t.effect==='include').map(t=>M.targetKinds[targets.find(x=>x.id===t.target_id)?.kind]||'대상'))];
-        const linked=doc.limits.filter(l=>l.benefit_ids.includes(b.id)&&l.scope==='shared');
-        const route=[b.payment_method&&(M.paymentLabels[b.payment_method]||b.payment_method),b.channel==='online'?'온라인':b.channel==='offline'?'오프라인':'',b.product_scope,doc.relations.some(r=>r.benefit_id===b.id&&r.kind==='add')?'추가 지급':''].filter(Boolean).join(' · ');
-        return `<article class="benefit-row" data-benefit-row="${esc(b.id)}"><div><div class="benefit-target-type">${esc(types.join(' · ')||'서비스')} · ${esc(M.ruleTypes[b.rule_type])}</div><h3 class="benefit-title">${esc(b.targets.length?M.targetText(b,targets):b.display_name)}</h3></div><strong class="benefit-reward">${esc(M.rewardText(b))}</strong><div class="benefit-bottom"><span class="badge ${b.review_status}">${M.reviewLabels[b.review_status]}</span><span class="benefit-summary">전월 실적 ${esc(M.conditionText(b,'min_spend'))} · 건당 ${esc(M.conditionText(b,'min_amount'))}${route?`<br>${esc(route)}`:''}</span></div>${linked.length?`<p class="benefit-review-line">${esc(linked.map(l=>l.name).join(' · '))}</p>`:''}<button class="edit-button" data-edit="${esc(b.id)}" type="button">비교·수정 ↗</button></article>`;
-      }).join('')||'<p class="empty">조건에 맞는 혜택이 없어요.</p>'}`;
-    }else if(tab==='limits'){
-      root.innerHTML=`<p class="version-note">공유 한도는 여러 혜택이 함께 사용합니다. 건당 혜택 상한과 결제금액 상한을 구분해 검수하세요.</p>${doc.limits.map(l=>`<article class="panel"><span class="eyebrow">${l.scope==='shared'?'공유 한도':'개별 한도'} · ${M.periodLabels[l.period]} · ${M.metricLabels[l.metric]}</span><h3>${esc(l.name)}</h3><p>${esc(limitText(l))}</p>${l.parent_id?`<p>상위 한도: ${esc(doc.limits.find(x=>x.id===l.parent_id)?.name||l.parent_id)}</p>`:''}<p>연결된 혜택 ${l.benefit_ids.length}개</p><button type="button" data-limit="${esc(l.id)}">연결·수치 수정</button></article>`).join('')||'<p class="empty">명시된 한도 규칙이 없습니다. 이 사실만으로 무제한으로 확정하지 않습니다.</p>'}`;
-    }else if(tab==='relations'){
-      root.innerHTML=`<article class="panel"><h3>함께 적용되는 방식</h3><p>추가 지급은 기본·특별 혜택에 더하고, 대체 혜택은 기존 혜택 대신 적용합니다. 관계 자체의 수정은 다음 검수 단계에서 확장할 수 있습니다.</p>${doc.relations.map(r=>`<div class="relation-item"><span class="badge">${({add:'추가',replace:'대체',exclude:'중복 불가'})[r.kind]}</span> ${esc(M.targetText(doc.benefits.find(b=>b.id===r.benefit_id),targets))} → ${esc(M.targetText(doc.benefits.find(b=>b.id===r.related_id),targets))}</div>`).join('')||'<p class="empty">명시된 관계가 없습니다.</p>'}</article>`;
-    }else if(tab==='sources'){
-      root.innerHTML=`<form id="metadataForm" class="panel source-form"><h3>카드 기본 정보</h3><div class="field-grid">${input('name','카드명',doc.card.name,'text','required')}${input('issuer','카드사',doc.card.issuer,'text','required')}${input('reward_medium','대표 지급수단',doc.card.reward_medium)}${select('review_status','카드 검수 상태',M.reviewLabels,doc.card.review_status)}</div><label>카드 공통 조건<textarea name="note">${esc(doc.card.note)}</textarea></label><label>검수 메모<textarea name="review_note">${esc(doc.card.review_note)}</textarea></label><button type="submit">기본 정보 초안에 적용</button></form><article class="panel"><h3>정보 출처</h3>${doc.card.sources.map(s=>`<p>${sourceLink(s.url,s.kind==='official'?'공식 안내':'보조 자료')} · ${s.checked_at?esc(s.checked_at)+' 확인':'공식 재확인 전'}</p>`).join('')}<p class="section-note">표본은 기존 코드에서 옮긴 초안입니다. 가져온 날짜를 약관 확인일로 간주하지 않습니다.</p></article>`;
+      const groups=V.groups(doc,targets).map(g=>({...g,benefits:g.benefits.filter(b=>matches(doc,b)&&(filter==='all'||b.review_status===filter))})).filter(g=>g.benefits.length);
+      root.innerHTML=`${sharedLimits(doc)}${doc.card.note?`<section class="card-common"><h3>카드 공통 안내</h3><p>${esc(doc.card.note)}</p></section>`:''}
+      <div class="list-toolbar"><div><h3>전체 혜택</h3><p>미확인은 아직 조건을 확정하지 않은 항목입니다.</p></div><select id="reviewFilter" aria-label="검수 상태 필터">${options({all:'전체 상태',...M.reviewLabels},filter)}</select></div>
+      ${groups.map(g=>`<section class="benefit-group" data-section="${esc(g.id)}">${g.benefits.length>1?`<div class="benefit-group-title"><h3>${esc([...new Set(g.benefits.map(b=>V.title(b,targets)))].join(' · '))}</h3><span>이용 조건별 안내</span></div>`:''}${g.benefits.map(b=>readBenefit(doc,b,g.benefits.length>1)).join('')}</section>`).join('')||'<p class="empty">조건에 맞는 혜택이 없어요.</p>'}`;
     }else if(tab==='history'){
-      root.innerHTML='<p class="version-note">카드 초안을 저장할 때마다 버전을 기록합니다.</p><div id="historyItems"></div>';
+      root.innerHTML='<p class="version-note">카드를 저장한 기록입니다. 검수·수정 이력을 확인할 수 있어요.</p><div id="historyItems"></div>';
       renderHistory(doc);
     }
   }
@@ -99,13 +113,14 @@
   function openEditor(id){
     editing=M.clone(current().benefits.find(b=>b.id===id));
     const b=editing;
-    $('#editorTitle').textContent=M.targetText(b,targets);
+    $('#editorTitle').textContent=V.title(b,targets);
     $('#editorBody').innerHTML=`<section class="editor-section"><h3>적용 대상</h3><div id="targetChips" class="target-chips"></div><div class="target-search"><input id="targetQuery" type="search" placeholder="브랜드·업종을 검색하세요" aria-label="적용 대상 검색"><select id="targetEffect" aria-label="포함 또는 제외"><option value="include">적용 대상</option><option value="exclude">제외 대상</option></select><button id="findTarget" type="button">검색</button></div><div id="targetOptions" class="target-options"></div><p class="section-note">브랜드는 각각 연결됩니다. 업종 전체·전체 가맹점은 별도 범위입니다.</p></section>
     <section class="editor-section"><h3>지급 방식과 계산</h3><div class="field-grid">${select('reward_kind','지급 방식',{discount:'할인',cashback:'캐시백',point:'적립',service:'서비스'},b.reward_kind)}${select('reward_unit','지급 단위',{KRW:'원',POINT:'포인트',STAR:'스타벅스 별',ITEM:'상품·서비스 수량'},b.reward_unit)}${select('rule_type','계산 방식',M.ruleTypes,b.rule_type)}</div><div id="ruleFields" style="margin-top:16px"></div></section>
     <section class="editor-section"><h3>적용 조건</h3><div class="field-grid">${stateInput('min_spend','전월 실적',b)}${stateInput('min_amount','건당 최소 결제금액',b)}${select('channel','결제 채널',{any:'온·오프라인 구분 없음',online:'온라인',offline:'오프라인'},b.channel)}${select('payment_method','필요 결제수단',{'':'지정 없음',...M.paymentLabels},b.payment_method)}${input('product_scope','대상 상품·메뉴',b.product_scope)}</div>${b.eligibility_rules.some(x=>x.type==='military_salary')?'<p class="section-note">군 급여이체 자격이 필요한 혜택입니다.</p>':''}<label style="margin-top:16px">세부 조건·설명<textarea name="notes">${esc(b.notes)}</textarea></label></section>
-    <section class="editor-section"><h3>연결된 한도</h3><p class="section-note">한도 수치는 카드의 ‘한도’ 탭에서 수정합니다.</p><div class="check-list">${current().limits.map(l=>`<label><input type="checkbox" name="limit_id" value="${esc(l.id)}" ${l.benefit_ids.includes(b.id)?'checked':''}>${esc(l.name)} · ${esc(limitText(l))}</label>`).join('')||'<p class="section-note">명시된 한도가 없습니다.</p>'}</div></section>
+    <section class="editor-section"><details class="advanced-settings"><summary>적용되는 한도 변경</summary><p class="section-note">한도 수치는 혜택 정보 화면에서 수정할 수 있어요. 여기서는 이 혜택에 적용할 한도를 선택합니다.</p><div class="check-list">${current().limits.map(l=>`<label><input type="checkbox" name="limit_id" value="${esc(l.id)}" ${l.benefit_ids.includes(b.id)?'checked':''}>${l.scope==='shared'?'통합':'개별'} · ${esc(l.name)} · ${esc(limitText(l))}</label>`).join('')||'<p class="section-note">명시된 한도가 없습니다.</p>'}</div></details></section>
     <section class="editor-section"><h3>기존 정리와 비교</h3>${originals(current(),b).map(o=>`<div class="original"><strong>${esc(o.title)}</strong><ul>${o.tags.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`).join('')}</section>
     <section class="editor-section"><h3>검수</h3><div class="field-grid">${select('review_status','검수 상태',M.reviewLabels,b.review_status)}</div><label style="margin-top:14px">검수 메모<textarea name="review_note" placeholder="확인한 내용이나 다시 볼 조건을 기록하세요">${esc(b.review_note)}</textarea></label></section>`;
+    $('#editorBody').insertAdjacentHTML('afterbegin',`<div class="source-links editor-source-links">${sourceLinks(current())}</div>`);
     renderTargets();ruleFields();$('#editor').showModal();
   }
   function numeric(form,name){const text=form.elements.namedItem(name)?.value;return text===''||text==null?null:Number(text);}
@@ -135,12 +150,21 @@
     for(const l of draft.limits)l.benefit_ids=connected.has(l.id)?[...new Set([...l.benefit_ids,updated.id])]:l.benefit_ids.filter(id=>id!==updated.id);
     const errors=M.validateDocument(draft,targets);if(errors.length){notify(errors[0],true);return;}
     draft.card.review_status='pending';documents[documents.findIndex(d=>d.card.id===selected)]=draft;
-    $('#editor').close();editing=null;render();notify('혜택 수정 내용을 초안에 적용했습니다. 카드 초안을 저장해 주세요.');
+    $('#editor').close();editing=null;render();notify('변경사항을 적용했습니다. 상단의 ‘카드 저장’을 눌러주세요.');
   }
   function openLimit(id){
     editingLimit=M.clone(current().limits.find(l=>l.id===id));const l=editingLimit;
     $('#limitEditorBody').innerHTML=`<div class="field-grid">${input('name','한도 이름',l.name,'text','required')}${select('state','한도 상태',{value:'금액·횟수 지정',unlimited:'한도 없음',unknown:'미확인'},l.state)}${select('period','기간',M.periodLabels,l.period)}${select('metric','제한하는 값',M.metricLabels,l.metric)}${select('unit','한도 단위',{KRW:'원',POINT:'포인트',STAR:'별',ITEM:'상품 수량',COUNT:'회'},l.unit)}${select('parent_id','상위 공유 한도',{'':'없음',...Object.fromEntries(current().limits.filter(x=>x.id!==l.id&&x.scope==='shared').map(x=>[x.id,x.name]))},l.parent_id||'')}</div><section><h3>실적별 한도</h3><p class="section-note">실적 구간은 작은 금액부터 입력합니다. 한도 수치는 위에서 선택한 단위를 사용합니다.</p><div id="limitTiers" class="limit-tiers"></div><button type="button" id="addLimitTier">+ 실적 구간</button></section><section><h3>함께 사용하는 혜택</h3><div class="check-list">${current().benefits.map(b=>`<label><input name="benefit_id" type="checkbox" value="${esc(b.id)}" ${l.benefit_ids.includes(b.id)?'checked':''}>${esc(M.targetText(b,targets))} · ${esc(M.rewardText(b))}</label>`).join('')}</div></section>`;
+    const parentLabel=$('#limitForm [name="parent_id"]').closest('label');
+    parentLabel.firstChild.textContent='함께 적용되는 통합한도';
+    $('#limitEditor .dialog-head h2').textContent=l.scope==='shared'?'통합한도 수정':V.limitName(l)+' 수정';
+    if(l.scope==='shared')$('#limitEditorBody').insertAdjacentHTML('afterbegin','<p class="section-note">이 값을 수정하면 연결된 모든 혜택의 통합한도가 함께 바뀝니다.</p>');
     renderLimitTiers();$('#limitEditor').showModal();
+  }
+  function openCardEditor(){
+    const doc=current();
+    $('#cardEditorBody').innerHTML=`<div class="field-grid">${input('name','카드명',doc.card.name,'text','required')}${input('issuer','카드사',doc.card.issuer,'text','required')}${input('reward_medium','대표 지급수단',doc.card.reward_medium)}${select('review_status','카드 검수 상태',M.reviewLabels,doc.card.review_status)}</div><label>카드 공통 안내<textarea name="note">${esc(doc.card.note)}</textarea></label><label>카드 검수 메모<textarea name="review_note">${esc(doc.card.review_note)}</textarea></label>`;
+    $('#cardEditor').showModal();
   }
   function renderLimitTiers(){ $('#limitTiers').innerHTML=editingLimit.tiers.map((t,i)=>`<div class="row-grid" data-limit-tier="${i}">${input('limit_min','전월 실적 이상',t.min_spend,'number','min="0" required')}${input('limit_cap','한도',t.cap,'number','min="0" required')}<button type="button" data-remove-limit-tier="${i}" aria-label="실적 구간 제거">×</button></div>`).join(''); }
   function readLimitTiers(){return [...document.querySelectorAll('[data-limit-tier]')].map(row=>({min_spend:Number(row.querySelector('[name="limit_min"]').value),cap:Number(row.querySelector('[name="limit_cap"]').value)}));}
@@ -206,13 +230,19 @@
     const tabButton=event.target.closest('[data-tab]');if(tabButton){tab=tabButton.dataset.tab;renderMain();return;}
     const edit=event.target.closest('[data-edit]');if(edit){openEditor(edit.dataset.edit);return;}
     const limit=event.target.closest('[data-limit]');if(limit){openLimit(limit.dataset.limit);return;}
+    const review=event.target.closest('[data-review]');if(review){
+      const b=current().benefits.find(item=>item.id===review.dataset.review);if(!b)return;
+      b.review_status=b.review_status==='reviewed'?'pending':'reviewed';current().card.review_status='pending';render();
+      notify('검수 상태를 적용했습니다. 상단의 ‘카드 저장’을 눌러주세요.');return;
+    }
+    if(event.target.closest('[data-edit-card]')){openCardEditor();return;}
     if(event.target.closest('#saveCard'))saveCard();
   });
   $('#mainPanel').addEventListener('change',event=>{if(event.target.id==='reviewFilter'){filter=event.target.value;renderTab();}});
-  $('#mainPanel').addEventListener('submit',event=>{
-    if(event.target.id!=='metadataForm')return;event.preventDefault();if(busy)return;const form=event.target;const doc=current();
+  $('#metadataForm').addEventListener('submit',event=>{
+    event.preventDefault();if(busy)return;const form=event.target;const doc=current();
     for(const name of ['name','issuer','reward_medium','note','review_note','review_status'])doc.card[name]=form.elements.namedItem(name).value;
-    render();notify('카드 기본 정보를 초안에 적용했습니다.');
+    $('#cardEditor').close();render();notify('카드 정보를 적용했습니다. 상단의 ‘카드 저장’을 눌러주세요.');
   });
   $('#editForm').addEventListener('submit',applyBenefit);
   $('#editForm').addEventListener('change',event=>{
